@@ -1,3 +1,5 @@
+# TODO: Update for RBIA-2
+
 # Rex Bytecode Instruction Set
 ## Instruction Layout
 `<instruction byte> <arg imm/addr>`
