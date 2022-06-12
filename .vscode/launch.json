@@ -1,0 +1,42 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch Main",
+            "request": "launch",
+            "mainClass": "Main",
+            "projectName": "RimAssembly_c480f469"
+        },
+        {
+            "name": "Run",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${fileDirname}/rasm",
+            "args": [
+                "main.rasm"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "lldb",
+            "preLaunchTask": "C/C++: gcc Aktive Datei kompilieren"
+        },
+        {
+            "name": "Run Rex",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${fileDirname}/rex",
+            "args": [
+                "out.rasm"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "lldb",
+            "preLaunchTask": "C/C++: gcc Aktive Datei kompilieren"
+        }
+    ],
+    "version": "2.0.0"
+}

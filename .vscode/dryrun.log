@@ -1,0 +1,6 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory `/Users/paul/Desktop/Andere-Projekte/RimAssembly'
+make: Leaving directory `/Users/paul/Desktop/Andere-Projekte/RimAssembly'
+ 
+make: *** No targets specified and no makefile found.  Stop.
+
