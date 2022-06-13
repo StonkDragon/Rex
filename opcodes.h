@@ -1,6 +1,6 @@
 #ifndef REX_OPCODES_H
 #define REX_OPCODES_H
-#define REX_BYTECODE_VERSION "rbia-2"
+#define REX_BYTECODE_VERSION "rbia-3"
 
 #define NOP              0x00
 #define MOVE             0x01   
@@ -9,10 +9,8 @@
 #define LOAD_IMM         0x04
 #define LOAD             0x05
 
-#define POP              0x1A
-#define POP2             0x1B
-#define DUP              0x1C
-#define DUP2             0x1D
+#define POP              0x1C
+#define DUP              0x1D
 #define SWAP             0x1E
 #define IADD             0x1F
 #define ISUB             0x20
@@ -28,21 +26,20 @@
 #define INOT             0x2A
 #define IINC             0x2B
 #define IDEC             0x2C
-#define I2S              0x2D
-#define S2I              0x2E
-#define CMP              0x2F
-#define GOTO             0x30
-#define IF_EQ            0x31
-#define IF_NE            0x32
-#define IF_LT            0x33
-#define IF_GT            0x34
-#define IF_LE            0x35
-#define IF_GE            0x36
-#define SYSTEM           0x37
-#define CALL             0x38
-#define RETURN           0x39
-#define IF_NULL          0x3A
-#define IF_NOTNULL       0x3B
+
+#define CMP              0x2D
+#define GOTO             0x2E
+#define IF_EQ            0x2F
+#define IF_NE            0x30
+#define IF_LT            0x31
+#define IF_GT            0x32
+#define IF_LE            0x33
+#define IF_GE            0x34
+#define SYSTEM           0x35
+#define CALL             0x36
+#define RETURN           0x37
+#define IF_NULL          0x38
+#define IF_NOTNULL       0x39
 
 #define BREAKPOINT       0xFF
 

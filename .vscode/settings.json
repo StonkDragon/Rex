@@ -19,6 +19,8 @@
         "*.rasm.obj": "arm",
         "opcodes.h": "c",
         "__config": "c",
-        "resource.h": "c"
+        "resource.h": "c",
+        "rexcall.h": "c",
+        "register.h": "c"
     }
 }
