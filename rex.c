@@ -19,6 +19,7 @@ extern "C" {
 #include "opcodes.h"
 #include "rexcall.h"
 #include "register.h"
+#include "error.h"
 
 char*    buffer;
 char*    getString(uint32_t str_addr);
@@ -45,7 +46,7 @@ int main(int argc, char* argv[]) {
     
     if (file == NULL) {
         error("Native Error: Error opening file \"%s\"\n", argv[1]);
-        return 1;
+        return ERR_NATIVE;
     }
 
     fseek(file, 0, SEEK_END);
@@ -94,11 +95,11 @@ int main(int argc, char* argv[]) {
                     ((heap[ip + 4] << 24) & 0xFF);
                 if (addr > HEAP_MAX || addr < 0) {
                     error("Heap Error: Attempted to write outside of memory space (Address: %02x)\n", addr);
-                    return -1;
+                    return ERR_INVALID_ADDRESS;
                 }
                 if (addr >= HEAP_MAX - 19 || addr <= size) {
                     error("Heap Error: Attempted to write to reserved memory space\n");
-                    return -1;
+                    return ERR_RESERVED_ADDRESS;
                 }
                 heapAddress = getRegister(heap[ip]);
                 ip += 4;
@@ -284,11 +285,11 @@ int main(int argc, char* argv[]) {
                                 addr = getRegister(0);
                                 if (addr > HEAP_MAX || addr < 0) {
                                     error("Heap Error: Attempted to write outside of memory space (Address: %02x)\n", addr);
-                                    return -1;
+                                    return ERR_INVALID_ADDRESS;
                                 }
                                 if (addr >= HEAP_MAX - 19 || addr <= size) {
                                     error("Heap Error: Attempted to write to reserved memory space\n");
-                                    return -1;
+                                    return ERR_RESERVED_ADDRESS;
                                 }
                                 char *line = NULL;
                                 size_t len = 0;
@@ -325,7 +326,7 @@ int main(int argc, char* argv[]) {
                                 free(str);
                                 if (fd < 0) {
                                     error("IO Error: Failed to open file\n");
-                                    return -1;
+                                    return ERR_IO;
                                 }
                                 setRegister(r0, fd);
                             }
@@ -335,8 +336,8 @@ int main(int argc, char* argv[]) {
                             {
                                 int cl = close(getRegister(0));
                                 if (cl < 0) {
-                                    error("Error: Failed to close file\n");
-                                    return -1;
+                                    error("IO Error: Failed to close file\n");
+                                    return ERR_IO;
                                 }
                             }
                             break;
@@ -351,7 +352,7 @@ int main(int argc, char* argv[]) {
                                 int r = read(fd, buf, len);
                                 if (r < 0) {
                                     error("Error: Failed to read from file\n");
-                                    return -1;
+                                    return ERR_IO;
                                 }
                                 for (int i = 0; i < r; i++) {
                                     heap[addr + i] = buf[i];
@@ -369,11 +370,11 @@ int main(int argc, char* argv[]) {
                                 addr = getRegister(2);
                                 if (addr > HEAP_MAX || addr < 0) {
                                     error("Heap Error: Attempted to write outside of memory space (Address: %02x)\n", addr);
-                                    return -1;
+                                    return ERR_INVALID_ADDRESS;
                                 }
                                 if (addr >= HEAP_MAX - 19 || addr <= size) {
                                     error("Heap Error: Attempted to write to reserved memory space\n");
-                                    return -1;
+                                    return ERR_RESERVED_ADDRESS;
                                 }
 
                                 char* buf = malloc(len);
@@ -383,7 +384,7 @@ int main(int argc, char* argv[]) {
                                 int r = write(fd, buf, len);
                                 if (r < 0) {
                                     error("Error: Failed to write to file\n");
-                                    return -1;
+                                    return ERR_IO;
                                 }
                                 free(buf);
                                 free(str);
@@ -397,7 +398,7 @@ int main(int argc, char* argv[]) {
                                 free(str);
                                 if (r < 0) {
                                     error("Error: Failed to execute program\n");
-                                    return -1;
+                                    return ERR_SYSTEM;
                                 }
                                 push(r);
                             }
@@ -434,7 +435,7 @@ int main(int argc, char* argv[]) {
 
             default:
                 error("Error: Unknown opcode 0x%02x\n", opcode);
-                return -1;
+                return ERR_INVALID_OPCODE;
                 break;
         }
         ip++;
