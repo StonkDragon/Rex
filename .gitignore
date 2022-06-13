@@ -1,3 +1,2 @@
 .vscode
-rex
-*.rasm
+rex-*

@@ -61,10 +61,10 @@ int main(int argc, char* argv[]) {
 
     while (ip < size) {
         uint8_t opcode = heap[ip];
-        addr = heap[ip + 1] |
-            (heap[ip + 2] << 8) |
-            (heap[ip + 3] << 16) |
-            (heap[ip + 4] << 24);
+        addr = (heap[ip + 1] & 0xFF) |
+            ((heap[ip + 2] << 8) & 0xFF) |
+            ((heap[ip + 3] << 16) & 0xFF) |
+            ((heap[ip + 4] << 24) & 0xFF);
 
         #ifdef DEBUG
         printf("Debug: 0x%x\n", opcode);
@@ -88,12 +88,12 @@ int main(int argc, char* argv[]) {
 
             case STORE:
                 ip++;
-                addr = heap[ip + 1] |
-                    (heap[ip + 2] << 8) |
-                    (heap[ip + 3] << 16) |
-                    (heap[ip + 4] << 24);
+                addr = (heap[ip + 1] & 0xFF) |
+                    ((heap[ip + 2] << 8) & 0xFF) |
+                    ((heap[ip + 3] << 16) & 0xFF) |
+                    ((heap[ip + 4] << 24) & 0xFF);
                 if (addr > HEAP_MAX || addr < 0) {
-                    error("Heap Error: Attempted to write outside of memory space\n");
+                    error("Heap Error: Attempted to write outside of memory space (Address: %02x)\n", addr);
                     return -1;
                 }
                 if (addr >= HEAP_MAX - 19 || addr <= size) {
@@ -106,20 +106,20 @@ int main(int argc, char* argv[]) {
 
             case LOAD:
                 ip++;
-                addr = heap[ip + 1] |
-                    (heap[ip + 2] << 8) |
-                    (heap[ip + 3] << 16) |
-                    (heap[ip + 4] << 24);
+                addr = (heap[ip + 1] & 0xFF) |
+                    ((heap[ip + 2] << 8) & 0xFF) |
+                    ((heap[ip + 3] << 16) & 0xFF) |
+                    ((heap[ip + 4] << 24) & 0xFF);
                 setRegister(heap[ip], heapAddress);
                 ip += 4;
                 break;
 
             case LOAD_IMM:
                 ip++;
-                addr = heap[ip + 1] |
-                    (heap[ip + 2] << 8) |
-                    (heap[ip + 3] << 16) |
-                    (heap[ip + 4] << 24);
+                addr = (heap[ip + 1] & 0xFF) |
+                    ((heap[ip + 2] << 8) & 0xFF) |
+                    ((heap[ip + 3] << 16) & 0xFF) |
+                    ((heap[ip + 4] << 24) & 0xFF);
                 setRegister(heap[ip], addr);
                 ip += 4;
                 break;
@@ -283,7 +283,7 @@ int main(int argc, char* argv[]) {
                             {
                                 addr = getRegister(0);
                                 if (addr > HEAP_MAX || addr < 0) {
-                                    error("Heap Error: Attempted to write outside of memory space\n");
+                                    error("Heap Error: Attempted to write outside of memory space (Address: %02x)\n", addr);
                                     return -1;
                                 }
                                 if (addr >= HEAP_MAX - 19 || addr <= size) {
@@ -368,7 +368,7 @@ int main(int argc, char* argv[]) {
                                 int len = getRegister(1);
                                 addr = getRegister(2);
                                 if (addr > HEAP_MAX || addr < 0) {
-                                    error("Heap Error: Attempted to write outside of memory space\n");
+                                    error("Heap Error: Attempted to write outside of memory space (Address: %02x)\n", addr);
                                     return -1;
                                 }
                                 if (addr >= HEAP_MAX - 19 || addr <= size) {
