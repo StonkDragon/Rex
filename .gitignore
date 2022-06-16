@@ -1,4 +1,6 @@
 .vscode
 bin/*
 *.dSYM
-test
+hello
+rasm
+rex

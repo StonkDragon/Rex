@@ -69,8 +69,8 @@ void dumpHeap() {
     printf("sp: %u\n", sp);
     printf("rFlags: "BYTE_TO_BINARY_PATTERN"\n", BYTE_TO_BINARY(rFlags));
 }
-
 #endif
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         error("Usage: %s <file>\n", argv[0]);
