@@ -45,6 +45,21 @@
 #define IF_NULL          0x38
 #define IF_NOTNULL       0x39
 
+#ifdef REX_FLOAT_EXT
+#define LOAD_IMM_FLOAT   0x80
+#define STORE_FLOAT      0x81
+#define LOAD_FLOAT       0x82
+#define FADD             0x83
+#define FSUB             0x84
+#define FMUL             0x85
+#define FDIV             0x86
+#define FREM             0x87
+#define FNEG             0x88
+#define FCMP             0x89
+#define FINC             0x8A
+#define FDEC             0x8B
+#endif
+
 #define BREAKPOINT       0xFF
 
 #endif //REX_OPCODES_H

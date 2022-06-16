@@ -163,6 +163,59 @@ int main(int argc, char* argv[]) {
             rasm_label_t l = {tokens[i], currentAddress};
             labels[labelCount++] = l;
         }
+        #ifdef REX_FLOAT_EXT
+        else if (strcmp(operand, "fldi") == 0) {
+            incAddr(LOAD_IMM_FLOAT);
+        } else if (strcmp(operand, "fst") == 0) {
+            incAddr(STORE_FLOAT);
+        } else if (strcmp(operand, "fld") == 0) {
+            incAddr(LOAD_FLOAT);
+        } else if (strcmp(operand, "fadd") == 0) {
+            incAddr(FADD);
+        } else if (strcmp(operand, "fsub") == 0) {
+            incAddr(FSUB);
+        } else if (strcmp(operand, "fmul") == 0) {
+            incAddr(FMUL);
+        } else if (strcmp(operand, "fdiv") == 0) {
+            incAddr(FDIV);
+        } else if (strcmp(operand, "fmod") == 0) {
+            incAddr(FREM);
+        } else if (strcmp(operand, "fneg") == 0) {
+            incAddr(FNEG);
+        } else if (strcmp(operand, "fcmp") == 0) {
+            incAddr(FCMP);
+        } else if (strcmp(operand, "finc") == 0) {
+            incAddr(FINC);
+        } else if (strcmp(operand, "fdec") == 0) {
+            incAddr(FDEC);
+        }
+        #else
+        else if (strcmp(operand, "fldi") == 0) {
+            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
+        } else if (strcmp(operand, "fst") == 0) {
+            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
+        } else if (strcmp(operand, "fld") == 0) {
+            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
+        } else if (strcmp(operand, "fadd") == 0) {
+            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
+        } else if (strcmp(operand, "fsub") == 0) {
+            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
+        } else if (strcmp(operand, "fmul") == 0) {
+            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
+        } else if (strcmp(operand, "fdiv") == 0) {
+            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
+        } else if (strcmp(operand, "fmod") == 0) {
+            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
+        } else if (strcmp(operand, "fneg") == 0) {
+            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
+        } else if (strcmp(operand, "fcmp") == 0) {
+            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
+        } else if (strcmp(operand, "finc") == 0) {
+            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
+        } else if (strcmp(operand, "fdec") == 0) {
+            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
+        }
+        #endif
     }
     
     FILE* out = fopen(outFile, "wb");
@@ -244,22 +297,15 @@ int main(int argc, char* argv[]) {
             checkNull(reg);
             data[ptr++] = regIdentifier(reg);
             char* address = token_list[++i];
-            if (address == NULL) {
-                error("Missing operand\n");
-                return ERR_SYNTAX;
-            }
-            if (strlen(address) == 0) {
-                error("Missing operand\n");
-                return ERR_SYNTAX;
-            }
+            checkNull(address);
             if (address[0] == '$') {
-                uint64_t add = getAddressOfLabel(address);
+                uint32_t add = getAddressOfLabel(address);
                 data[ptr++] = add & 0xFF;
                 data[ptr++] = (add >> 8) & 0xFF;
                 data[ptr++] = (add >> 16) & 0xFF;
                 data[ptr++] = (add >> 24) & 0xFF;
             } else {
-                uint64_t num = atoll(address);
+                uint32_t num = atoll(address);
                 data[ptr++] = num & 0xFF;
                 data[ptr++] = (num >> 8) & 0xFF;
                 data[ptr++] = (num >> 16) & 0xFF;
@@ -563,6 +609,85 @@ int main(int argc, char* argv[]) {
             }
             data[ptr++] = 0;
         }
+        #ifdef REX_FLOAT_EXT
+        else if (strcmp(operand, "fldi") == 0) {
+            data[ptr++] = LOAD_IMM_FLOAT;
+            char* reg = token_list[++i];
+            checkNull(reg);
+            data[ptr++] = regIdentifier(reg);
+            char* imm = token_list[++i];
+            checkNull(imm);
+            float* num = (float*)malloc(sizeof(float));
+            *num = atof(imm);
+            int num_int = *(int*)num;
+            data[ptr++] = num_int & 0xFF;
+            data[ptr++] = (num_int >> 8) & 0xFF;
+            data[ptr++] = (num_int >> 16) & 0xFF;
+            data[ptr++] = (num_int >> 24) & 0xFF;
+        } else if (strcmp(operand, "fst") == 0) {
+            data[ptr++] = STORE_FLOAT;
+            char* address = token_list[++i];
+            checkNull(address);
+            float* num = atof(address);
+            int num_int = *(int*)num;
+            data[ptr++] = num_int & 0xFF;
+            data[ptr++] = (num_int >> 8) & 0xFF;
+            data[ptr++] = (num_int >> 16) & 0xFF;
+            data[ptr++] = (num_int >> 24) & 0xFF;
+            char* reg = token_list[++i];
+            checkNull(reg);
+            data[ptr++] = regIdentifier(reg);
+        } else if (strcmp(operand, "fld") == 0) {
+            data[ptr++] = LOAD_FLOAT;
+            char* reg = token_list[++i];
+            checkNull(reg);
+            data[ptr++] = regIdentifier(reg);
+            char* address = token_list[++i];
+            checkNull(address);
+            float* num = atof(address);
+            int num_int = *(int*)num;
+            data[ptr++] = num_int & 0xFF;
+            data[ptr++] = (num_int >> 8) & 0xFF;
+            data[ptr++] = (num_int >> 16) & 0xFF;
+            data[ptr++] = (num_int >> 24) & 0xFF;
+        } else if (strcmp(operand, "fadd") == 0) {
+            data[ptr++] = FADD;
+            char* reg1 = token_list[++i];
+            checkNull(reg1);
+            data[ptr++] = regIdentifier(reg1);
+        } else if (strcmp(operand, "fsub") == 0) {
+            data[ptr++] = FSUB;
+            char* reg1 = token_list[++i];
+            checkNull(reg1);
+            data[ptr++] = regIdentifier(reg1);
+        } else if (strcmp(operand, "fmul") == 0) {
+            data[ptr++] = FMUL;
+            char* reg1 = token_list[++i];
+            checkNull(reg1);
+            data[ptr++] = regIdentifier(reg1);
+        } else if (strcmp(operand, "fdiv") == 0) {
+            data[ptr++] = FDIV;
+            char* reg1 = token_list[++i];
+            checkNull(reg1);
+            data[ptr++] = regIdentifier(reg1);
+        } else if (strcmp(operand, "fmod") == 0) {
+            data[ptr++] = FREM;
+            char* reg1 = token_list[++i];
+            checkNull(reg1);
+            data[ptr++] = regIdentifier(reg1);
+        } else if (strcmp(operand, "fneg") == 0) {
+            data[ptr++] = FNEG;
+        } else if (strcmp(operand, "fcmp") == 0) {
+            data[ptr++] = FCMP;
+            char* reg1 = token_list[++i];
+            checkNull(reg1);
+            data[ptr++] = regIdentifier(reg1);
+        } else if (strcmp(operand, "finc") == 0) {
+            data[ptr++] = FINC;
+        } else if (strcmp(operand, "fdec") == 0) {
+            data[ptr++] = FDEC;
+        }
+        #endif
     }
 
     uint8_t* code = (uint8_t*) malloc(sizeof(uint8_t) * ptr + HEADER_SIZE);
