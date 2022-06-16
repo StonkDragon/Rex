@@ -15,10 +15,10 @@ extern "C" {
 #include "error.h"
 #include "rutil.c"
 
-#define incAddr(amount)    currentAddress += opLength(amount)
-#define MAX_LABEL_COUNT    512
-#define MAX_STRING_LENGTH  16384
-#define checkNull(reg)     if (reg == NULL) { error("Missing operand.\n"); return ERR_SYNTAX; } if (strlen(reg) == 0) { error("Missing operand.\n"); return ERR_SYNTAX; }
+#define incAddr(amount)      currentAddress += opLength(amount)
+#define MAX_LABEL_COUNT      512
+#define MAX_STRING_LENGTH    16384
+#define checkNull(reg, inst) if (reg == NULL) { syntax_error("Missing operand. (Instruction: %s)\n", inst); return ERR_SYNTAX; } if (strlen(reg) == 0) { syntax_error("Missing operand. (Instruction: %s)\n", inst); return ERR_SYNTAX; }
 
 int opLength(int op);
 int regIdentifier(char* reg);
@@ -35,16 +35,17 @@ uint32_t labelCount = 0;
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        error("Usage: %s <file>\n", argv[0]);
+        usage_error("%s <file>\n", argv[0]);
         return ERR_USAGE;
     }
     FILE* file = fopen(argv[1], "r");
     if (file == 0) {
-        error("Could not open file %s\n", argv[1]);
+        native_error("Could not open file %s\n", argv[1]);
         return ERR_IO;
     }
-    char* outFile = (char*) malloc(strlen(argv[1]) - 5);
+    char* outFile = (char*) malloc(strlen(argv[1]) - 3);
     strncpy(outFile, argv[1], strlen(argv[1]) - 5);
+    strcat(outFile, ".rx");
     fseek(file, 0, SEEK_END);
     int size = ftell(file);
     fseek(file, 0, SEEK_SET);
@@ -153,11 +154,11 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, ".here") == 0) {
             i++;
             if (tokens[i] == NULL) {
-                error("Missing label after .here\n");
+                syntax_error("Missing label after .here\n");
                 return ERR_SYNTAX;
             }
             if (strlen(tokens[i]) == 0) {
-                error("Missing label after .here\n");
+                syntax_error("Missing label after .here\n");
                 return ERR_SYNTAX;
             }
             rasm_label_t l = {tokens[i], currentAddress};
@@ -220,7 +221,7 @@ int main(int argc, char* argv[]) {
     
     FILE* out = fopen(outFile, "wb");
     if (out == 0) {
-        error("Could not open file %s\n", outFile);
+        native_error("Could not open file %s\n", outFile);
         return ERR_IO;
     }
 
@@ -246,14 +247,14 @@ int main(int argc, char* argv[]) {
             data[ptr++] = MOVE;
             char* reg1 = token_list[++i];
             char* reg2 = token_list[++i];
-            checkNull(reg1);
-            checkNull(reg2);
+            checkNull(reg1, operand);
+            checkNull(reg2, operand);
             data[ptr++] = regIdentifier(reg1);
             data[ptr++] = regIdentifier(reg2);
         } else if (strcmp(operand, "psh") == 0) {
             data[ptr++] = PUSH;
             char* imm = token_list[++i];
-            checkNull(imm);
+            checkNull(imm, operand);
             int num = atoi(imm);
             data[ptr++] = num & 0xFF;
             data[ptr++] = (num >> 8) & 0xFF;
@@ -262,22 +263,22 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "st") == 0) {
             data[ptr++] = STORE;
             char* address = token_list[++i];
-            checkNull(address);
+            checkNull(address, operand);
             int num = atoi(address);
             data[ptr++] = num & 0xFF;
             data[ptr++] = (num >> 8) & 0xFF;
             data[ptr++] = (num >> 16) & 0xFF;
             data[ptr++] = (num >> 24) & 0xFF;
             char* reg = token_list[++i];
-            checkNull(reg);
+            checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
         } else if (strcmp(operand, "ldi") == 0) {
             data[ptr++] = LOAD_IMM;
             char* reg = token_list[++i];
-            checkNull(reg);
+            checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
             char* imm = token_list[++i];
-            checkNull(imm);
+            checkNull(imm, operand);
             if (imm[0] == '$') {
                 uint32_t add = getAddressOfLabel(imm);
                 data[ptr++] = add & 0xFF;
@@ -294,10 +295,10 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "ld") == 0) {
             data[ptr++] = LOAD;
             char* reg = token_list[++i];
-            checkNull(reg);
+            checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
             char* address = token_list[++i];
-            checkNull(address);
+            checkNull(address, operand);
             if (address[0] == '$') {
                 uint32_t add = getAddressOfLabel(address);
                 data[ptr++] = add & 0xFF;
@@ -314,7 +315,7 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "pop") == 0) {
             data[ptr++] = POP;
             char* reg = token_list[++i];
-            checkNull(reg);
+            checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
         } else if (strcmp(operand, "dup") == 0) {
             data[ptr++] = DUP;
@@ -323,54 +324,54 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "add") == 0) {
             data[ptr++] = IADD;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "sub") == 0) {
             data[ptr++] = ISUB;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "mul") == 0) {
             data[ptr++] = IMUL;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "div") == 0) {
             data[ptr++] = IDIV;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "mod") == 0) {
             data[ptr++] = IREM;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "neg") == 0) {
             data[ptr++] = INEG;
         } else if (strcmp(operand, "and") == 0) {
             data[ptr++] = IAND;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "or") == 0) {
             data[ptr++] = IOR;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "xor") == 0) {
             data[ptr++] = IXOR;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "shl") == 0) {
             data[ptr++] = ISHL;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "shr") == 0) {
             data[ptr++] = ISHR;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "not") == 0) {
             data[ptr++] = INOT;
@@ -381,12 +382,12 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "cmp") == 0) {
             data[ptr++] = CMP;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "jmp") == 0) {
             data[ptr++] = GOTO;
             char* label = token_list[++i];
-            checkNull(label);
+            checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
                 data[ptr++] = add & 0xFF;
@@ -403,7 +404,7 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "jeq") == 0) {
             data[ptr++] = IF_EQ;
             char* label = token_list[++i];
-            checkNull(label);
+            checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
                 data[ptr++] = add & 0xFF;
@@ -420,7 +421,7 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "jne") == 0) {
             data[ptr++] = IF_NE;
             char* label = token_list[++i];
-            checkNull(label);
+            checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
                 data[ptr++] = add & 0xFF;
@@ -437,7 +438,7 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "jlt") == 0) {
             data[ptr++] = IF_LT;
             char* label = token_list[++i];
-            checkNull(label);
+            checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
                 data[ptr++] = add & 0xFF;
@@ -454,7 +455,7 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "jgt") == 0) {
             data[ptr++] = IF_GT;
             char* label = token_list[++i];
-            checkNull(label);
+            checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
                 data[ptr++] = add & 0xFF;
@@ -471,7 +472,7 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "jle") == 0) {
             data[ptr++] = IF_LE;
             char* label = token_list[++i];
-            checkNull(label);
+            checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
                 data[ptr++] = add & 0xFF;
@@ -488,7 +489,7 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "jge") == 0) {
             data[ptr++] = IF_GE;
             char* label = token_list[++i];
-            checkNull(label);
+            checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
                 data[ptr++] = add & 0xFF;
@@ -507,7 +508,7 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "call") == 0) {
             data[ptr++] = IF_TRUE;
             char* label = token_list[++i];
-            checkNull(label);
+            checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
                 data[ptr++] = add & 0xFF;
@@ -526,7 +527,7 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "jz") == 0) {
             data[ptr++] = IF_NULL;
             char* label = token_list[++i];
-            checkNull(label);
+            checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
                 data[ptr++] = add & 0xFF;
@@ -543,7 +544,7 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "jnz") == 0) {
             data[ptr++] = IF_NOTNULL;
             char* label = token_list[++i];
-            checkNull(label);
+            checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
                 data[ptr++] = add & 0xFF;
@@ -613,10 +614,10 @@ int main(int argc, char* argv[]) {
         else if (strcmp(operand, "fldi") == 0) {
             data[ptr++] = LOAD_IMM_FLOAT;
             char* reg = token_list[++i];
-            checkNull(reg);
+            checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
             char* imm = token_list[++i];
-            checkNull(imm);
+            checkNull(imm, operand);
             float* num = (float*)malloc(sizeof(float));
             *num = atof(imm);
             int num_int = *(int*)num;
@@ -627,7 +628,7 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "fst") == 0) {
             data[ptr++] = STORE_FLOAT;
             char* address = token_list[++i];
-            checkNull(address);
+            checkNull(address, operand);
             float* num = atof(address);
             int num_int = *(int*)num;
             data[ptr++] = num_int & 0xFF;
@@ -635,15 +636,15 @@ int main(int argc, char* argv[]) {
             data[ptr++] = (num_int >> 16) & 0xFF;
             data[ptr++] = (num_int >> 24) & 0xFF;
             char* reg = token_list[++i];
-            checkNull(reg);
+            checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
         } else if (strcmp(operand, "fld") == 0) {
             data[ptr++] = LOAD_FLOAT;
             char* reg = token_list[++i];
-            checkNull(reg);
+            checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
             char* address = token_list[++i];
-            checkNull(address);
+            checkNull(address, operand);
             float* num = atof(address);
             int num_int = *(int*)num;
             data[ptr++] = num_int & 0xFF;
@@ -653,34 +654,34 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(operand, "fadd") == 0) {
             data[ptr++] = FADD;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "fsub") == 0) {
             data[ptr++] = FSUB;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "fmul") == 0) {
             data[ptr++] = FMUL;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "fdiv") == 0) {
             data[ptr++] = FDIV;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "fmod") == 0) {
             data[ptr++] = FREM;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "fneg") == 0) {
             data[ptr++] = FNEG;
         } else if (strcmp(operand, "fcmp") == 0) {
             data[ptr++] = FCMP;
             char* reg1 = token_list[++i];
-            checkNull(reg1);
+            checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "finc") == 0) {
             data[ptr++] = FINC;
@@ -734,7 +735,7 @@ uint32_t getAddressOfLabel(char* label) {
     if (label[0] == '$') {
         label++;
     } else {
-        error("Invalid Label: %s", label);
+        syntax_error("Invalid Label: %s", label);
         exit(-1);
     }
     for (int i = 0; i < labelCount; i++) {

@@ -1,11 +1,11 @@
 .here _main
     ldi r15 3
-    ldi r0 $message
+    ldi r0 $_message
     syscall
 
     ldi r15 1
     ldi r0 0
     syscall
-    
-.here message
+   
+.here _message
     .asciiz "Hello, World!\n"

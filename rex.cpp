@@ -24,9 +24,8 @@ extern "C" {
 #include "rutil.c"
 
 char*    buffer;
-char*    getString(uint32_t str_addr);
-FILE*    files[STACK_SIZE];
-int      fp = 0;
+FILE*    openFiles[STACK_SIZE];
+int      filePointer = 0;
 
 #ifdef DEBUG
 #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
@@ -79,7 +78,7 @@ int main(int argc, char* argv[]) {
     FILE *file = fopen(argv[1], "rb");
     
     if (file == NULL) {
-        error("Native Error: Error opening file \"%s\"\n", argv[1]);
+        native_error("Error opening file \"%s\"\n", argv[1]);
         return ERR_NATIVE;
     }
 
@@ -90,7 +89,7 @@ int main(int argc, char* argv[]) {
     buffer = (char*)malloc(size);
     fread(buffer, size, 1, file);
     fclose(file);
-    char* crcData = (char*)malloc(size - HEADER_SIZE);
+    uint8_t* crcData = (uint8_t*)malloc(size - HEADER_SIZE);
     memcpy(crcData, buffer + HEADER_SIZE, size - HEADER_SIZE);
     
     uint32_t crc = crc32(crcData, size - HEADER_SIZE);
@@ -98,7 +97,7 @@ int main(int argc, char* argv[]) {
 
     uint32_t identifier = buffer[0] & 0xFF | (buffer[1] & 0xFF) << 8 | (buffer[2] & 0xFF) << 16 | (buffer[3] & 0xFF) << 24;
     if (identifier != HEADER) {
-        error("Native Error: Invalid file\n");
+        native_error("Invalid file\n");
         return ERR_NATIVE;
     }
 
@@ -108,7 +107,7 @@ int main(int argc, char* argv[]) {
         | (buffer[7] & 0xFF) << 24;
     
     if (crc != dataCRC) {
-        error("Native Error: CRC mismatch\n");
+        native_error("CRC mismatch\n");
         return ERR_NATIVE;
     }
 
@@ -148,19 +147,21 @@ int main(int argc, char* argv[]) {
                 break;
 
             case STORE:
-                ip++;
-                addr = memGetInt(ip);
-                if (addr > HEAP_MAX || addr < 0) {
-                    error("Heap Error: Attempted to write outside of memory space (Address: %02x)\n", addr);
-                    return ERR_INVALID_ADDRESS;
+                {
+                    ip++;
+                    addr = memGetInt(ip);
+                    if (addr > HEAP_MAX || addr < 0) {
+                        heap_error("Attempted to write outside of memory space (Address: %02x)\n", addr);
+                        return ERR_INVALID_ADDRESS;
+                    }
+                    if (addr <= size) {
+                        heap_error("Attempted to write to reserved memory space\n");
+                        return ERR_RESERVED_ADDRESS;
+                    }
+                    uint32_t value = getRegister(memGetByte(ip));
+                    memWriteInt(addr, value);
+                    ip += 4;
                 }
-                if (addr <= size) {
-                    error("Heap Error: Attempted to write to reserved memory space\n");
-                    return ERR_RESERVED_ADDRESS;
-                }
-                uint32_t value = getRegister(memGetByte(ip));
-                memWriteInt(addr, value);
-                ip += 4;
                 break;
 
             case LOAD:
@@ -345,11 +346,11 @@ int main(int argc, char* argv[]) {
                             {
                                 addr = getRegister(0);
                                 if (addr > HEAP_MAX || addr < 0) {
-                                    error("Heap Error: Attempted to write outside of memory space (Address: %02x)\n", addr);
+                                    heap_error("Attempted to write outside of memory space (Address: %02x)\n", addr);
                                     return ERR_INVALID_ADDRESS;
                                 }
                                 if (addr <= size) {
-                                    error("Heap Error: Attempted to write to reserved memory space\n");
+                                    heap_error("Attempted to write to reserved memory space\n");
                                     return ERR_RESERVED_ADDRESS;
                                 }
                                 char *line = NULL;
@@ -370,7 +371,7 @@ int main(int argc, char* argv[]) {
 
                         case SC_WRITE_CON:
                             {
-                                char* str = getString(getRegister(0));
+                                char* str = memGetString(getRegister(0));
                                 printf("%s", str);
                                 free(str);
                             }
@@ -382,25 +383,25 @@ int main(int argc, char* argv[]) {
 
                         case SC_OPEN:
                             {
-                                char* str = getString(getRegister(0));
+                                char* str = memGetString(getRegister(0));
                                 int mode = getRegister(1);
                                 if (mode != 0 && mode != 1) {
-                                    error("Heap Error: Invalid mode for open\n");
+                                    system_error("Invalid mode for open\n");
                                     return ERR_IO;
                                 }
                                 FILE* f = fopen(str, mode == 0 ? "r" : "w");
-                                files[fp++] = f;
+                                openFiles[filePointer++] = f;
                                 if (f == NULL) {
-                                    error("File Error: Could not open file \"%s\"\n", str);
+                                    system_error("IO: Could not open file \"%s\"\n", str);
                                     return ERR_IO;
                                 }
                                 free(str);
-                                setRegister(r0, fp-1);
+                                setRegister(r0, filePointer-1);
                             }
                             break;
 
                         case SC_CLOSE:
-                            fclose(files[getRegister(0)]);
+                            fclose(openFiles[getRegister(0)]);
                             break;
 
                         case SC_READ:
@@ -409,11 +410,11 @@ int main(int argc, char* argv[]) {
                                 int fd = getRegister(0);
                                 int len = getRegister(1);
                                 addr = getRegister(2);
-                                char* buf = malloc(len);
+                                char* buf = (char*)malloc(len);
                                 error("File IO is not implemented yet\n");
                                 free(buf);
                                 break;
-                                fread(buf, len, 1, files[fd]);
+                                fread(buf, len, 1, openFiles[fd]);
                                 for (int i = 0; i < len; i++) {
                                     memWriteByte(addr + i, buf[i]);
                                 }
@@ -428,24 +429,24 @@ int main(int argc, char* argv[]) {
                                 int len = getRegister(1);
                                 addr = getRegister(2);
 
-                                char* buf = malloc(len + 1);
-                                strncpy(buf, getString(addr), len);
+                                char* buf = (char*)malloc(len + 1);
+                                strncpy(buf, memGetString(addr), len);
                                 buf[len] = '\0';
                                 error("File IO is not implemented yet\n");
                                 free(buf);
                                 break;
-                                fprintf(files[fd], "%s", buf);
+                                fprintf(openFiles[fd], "%s", buf);
                                 free(buf);
                             }
                             break;
 
                         case SC_EXEC:
                             {
-                                char* str = getString(getRegister(0));
+                                char* str = memGetString(getRegister(0));
                                 int r = system(str);
                                 free(str);
                                 if (r < 0) {
-                                    error("Error: Failed to execute program\n");
+                                    system_error("Failed to execute program\n");
                                     return ERR_SYSTEM;
                                 }
                                 push(r);
@@ -492,10 +493,6 @@ int main(int argc, char* argv[]) {
     dumpHeap();
     #endif
     return 0;
-}
-
-char* getString(uint32_t str_addr) {
-    return memGetString(str_addr);
 }
 
 #ifdef __cplusplus

@@ -1,8 +1,8 @@
 runtime:
-		gcc -Wunsequenced -o bin/rex rex.c
+		gcc -Wunsequenced -o bin/rex rex.cpp
 
 runtime-debug:
-		gcc -Wunsequenced -o bin/rex-debug rex.c -DDEBUG
+		gcc -Wunsequenced -o bin/rex-debug rex.cpp -DDEBUG
 
 compiler:
 		gcc -Wunsequenced -o bin/rasm rasm.cpp
@@ -12,7 +12,7 @@ compiler-debug:
 
 all:
 		gcc -Wunsequenced -o bin/rasm rasm.cpp
-		gcc -Wunsequenced -o bin/rex rex.c
+		gcc -Wunsequenced -o bin/rex rex.cpp
 
 run:
 		./bin/rex test.rasm.out
