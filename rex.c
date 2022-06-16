@@ -15,28 +15,62 @@ extern "C" {
 #include <sys/resource.h>
 #include <sys/file.h>
 #include <stdint.h>
+#include <errno.h>
 
 #include "opcodes.h"
 #include "rexcall.h"
 #include "register.h"
 #include "error.h"
+#include "rutil.c"
 
 char*    buffer;
 char*    getString(uint32_t str_addr);
-
-#define error(...) fprintf(__stderrp, __VA_ARGS__)
+FILE*    files[STACK_SIZE];
+int      fp = 0;
 
 #ifdef DEBUG
+#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
+#define BYTE_TO_BINARY(byte)  \
+  (byte & 0x80 ? '1' : '0'), \
+  (byte & 0x40 ? '1' : '0'), \
+  (byte & 0x20 ? '1' : '0'), \
+  (byte & 0x10 ? '1' : '0'), \
+  (byte & 0x08 ? '1' : '0'), \
+  (byte & 0x04 ? '1' : '0'), \
+  (byte & 0x02 ? '1' : '0'), \
+  (byte & 0x01 ? '1' : '0') 
+
 void dumpHeap() {
     printf("Heap Dump:\n");
     for (int i = 0; i < HEAP_SIZE; i++) {
-        if (heap[i] != 0) {
-            printf("%d: %u\n", i, heap[i]);
+        if (memGetByte(i] != 0) {
+            printf("%d: %u\n", i, memGetByte(i]);
         }
     }
+    printf("\n");
+    printf("Registers:\n");
+    printf("r0: %u\n", r0);
+    printf("r1: %u\n", r1);
+    printf("r2: %u\n", r2);
+    printf("r3: %u\n", r3);
+    printf("r4: %u\n", r4);
+    printf("r5: %u\n", r5);
+    printf("r6: %u\n", r6);
+    printf("r7: %u\n", r7);
+    printf("r8: %u\n", r8);
+    printf("r9: %u\n", r9);
+    printf("r10: %u\n", r10);
+    printf("r11: %u\n", r11);
+    printf("r12: %u\n", r12);
+    printf("r13: %u\n", r13);
+    printf("r14: %u\n", r14);
+    printf("r15: %u\n", r15);
+    printf("ip: %u\n", ip);
+    printf("sp: %u\n", sp);
+    printf("rFlags: "BYTE_TO_BINARY_PATTERN"\n", BYTE_TO_BINARY(rFlags));
 }
-#endif
 
+#endif
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         error("Usage: %s <file>\n", argv[0]);
@@ -56,16 +90,42 @@ int main(int argc, char* argv[]) {
     buffer = (char*)malloc(size);
     fread(buffer, size, 1, file);
     fclose(file);
-    for (int i = 0; i < size; i++) {
-        heap[i] = buffer[i];
+    char* crcData = (char*)malloc(size - HEADER_SIZE);
+    memcpy(crcData, buffer + HEADER_SIZE, size - HEADER_SIZE);
+    
+    uint32_t crc = crc32(crcData, size - HEADER_SIZE);
+    free(crcData);
+
+    uint32_t identifier = buffer[0] & 0xFF | (buffer[1] & 0xFF) << 8 | (buffer[2] & 0xFF) << 16 | (buffer[3] & 0xFF) << 24;
+    if (identifier != HEADER) {
+        error("Native Error: Invalid file\n");
+        return ERR_NATIVE;
     }
 
+    uint32_t dataCRC = buffer[4] & 0xFF
+        | (buffer[5] & 0xFF) << 8
+        | (buffer[6] & 0xFF) << 16
+        | (buffer[7] & 0xFF) << 24;
+    
+    if (crc != dataCRC) {
+        error("Native Error: CRC mismatch\n");
+        return ERR_NATIVE;
+    }
+
+    uint32_t _main = buffer[8] & 0xFF
+        | (buffer[9] & 0xFF) << 8
+        | (buffer[10] & 0xFF) << 16
+        | (buffer[11] & 0xFF) << 24;
+
+    for (int i = HEADER_SIZE; i < size; i++) {
+        memWriteByte(i - HEADER_SIZE, buffer[i]);
+    }
+
+    ip = _main;
+
     while (ip < size) {
-        uint8_t opcode = heap[ip];
-        addr = (heap[ip + 1] & 0xFF) |
-            ((heap[ip + 2] << 8) & 0xFF) |
-            ((heap[ip + 3] << 16) & 0xFF) |
-            ((heap[ip + 4] << 24) & 0xFF);
+        uint8_t opcode = memGetByte(ip);
+        addr = memGetInt(ip + 1);
 
         #ifdef DEBUG
         printf("Debug: 0x%x\n", opcode);
@@ -89,48 +149,40 @@ int main(int argc, char* argv[]) {
 
             case STORE:
                 ip++;
-                addr = (heap[ip + 1] & 0xFF) |
-                    ((heap[ip + 2] << 8) & 0xFF) |
-                    ((heap[ip + 3] << 16) & 0xFF) |
-                    ((heap[ip + 4] << 24) & 0xFF);
+                addr = memGetInt(ip);
                 if (addr > HEAP_MAX || addr < 0) {
                     error("Heap Error: Attempted to write outside of memory space (Address: %02x)\n", addr);
                     return ERR_INVALID_ADDRESS;
                 }
-                if (addr >= HEAP_MAX - 19 || addr <= size) {
+                if (addr <= size) {
                     error("Heap Error: Attempted to write to reserved memory space\n");
                     return ERR_RESERVED_ADDRESS;
                 }
-                heapAddress = getRegister(heap[ip]);
+                uint32_t value = getRegister(memGetByte(ip));
+                memWriteInt(addr, value);
                 ip += 4;
                 break;
 
             case LOAD:
                 ip++;
-                addr = (heap[ip + 1] & 0xFF) |
-                    ((heap[ip + 2] << 8) & 0xFF) |
-                    ((heap[ip + 3] << 16) & 0xFF) |
-                    ((heap[ip + 4] << 24) & 0xFF);
-                setRegister(heap[ip], heapAddress);
+                addr = memGetInt(ip + 1);
+                setRegister(memGetByte(ip), heapAddress);
                 ip += 4;
                 break;
 
             case LOAD_IMM:
                 ip++;
-                addr = (heap[ip + 1] & 0xFF) |
-                    ((heap[ip + 2] << 8) & 0xFF) |
-                    ((heap[ip + 3] << 16) & 0xFF) |
-                    ((heap[ip + 4] << 24) & 0xFF);
-                setRegister(heap[ip], addr);
+                addr = memGetInt(ip + 1);
+                setRegister(memGetByte(ip), addr);
                 ip += 4;
                 break;
 
             case MOVE:
-                setRegister(heap[++ip], getRegister(heap[++ip]));
+                setRegister(memGetByte(++ip), getRegister(memGetByte(++ip)));
                 break;
 
             case POP:
-                setRegister(heap[++ip], pop());
+                setRegister(memGetByte(++ip), pop());
                 break;
 
             case DUP:
@@ -147,23 +199,23 @@ int main(int argc, char* argv[]) {
                 break;
 
             case IADD:
-                r0 += getRegister(heap[++ip]);
+                r0 += getRegister(memGetByte(++ip));
                 break;
 
             case ISUB:
-                r0 -= getRegister(heap[++ip]);
+                r0 -= getRegister(memGetByte(++ip));
                 break;
 
             case IMUL:
-                r0 *= getRegister(heap[++ip]);
+                r0 *= getRegister(memGetByte(++ip));
                 break;
 
             case IDIV:
-                r0 /= getRegister(heap[++ip]);
+                r0 /= getRegister(memGetByte(++ip));
                 break;
 
             case IREM:
-                r0 %= getRegister(heap[++ip]);
+                r0 %= getRegister(memGetByte(++ip));
                 break;
 
             case INEG:
@@ -179,23 +231,23 @@ int main(int argc, char* argv[]) {
                 break;
 
             case IAND:
-                r0 &= getRegister(heap[++ip]);
+                r0 &= getRegister(memGetByte(++ip));
                 break;
 
             case IOR:
-                r0 |= getRegister(heap[++ip]);
+                r0 |= getRegister(memGetByte(++ip));
                 break;
 
             case IXOR:
-                r0 ^= getRegister(heap[++ip]);
+                r0 ^= getRegister(memGetByte(++ip));
                 break;
 
             case ISHL:
-                r0 <<= getRegister(heap[++ip]);
+                r0 <<= getRegister(memGetByte(++ip));
                 break;
 
             case ISHR:
-                r0 >>= getRegister(heap[++ip]);
+                r0 >>= getRegister(memGetByte(++ip));
                 break;
 
             case INOT:
@@ -203,11 +255,11 @@ int main(int argc, char* argv[]) {
                 break;
 
             case CMP:
-                if (r0 == getRegister(heap[++ip])) {
+                if (r0 == getRegister(memGetByte(++ip))) {
                     rFlags = rFlags | FLAG_EQUAL;
                     rFlags = rFlags & ~FLAG_LESS;
                     rFlags = rFlags & ~FLAG_GREATER;
-                } else if (r0 < getRegister(heap[++ip])) {
+                } else if (r0 < getRegister(memGetByte(++ip))) {
                     rFlags = rFlags | FLAG_LESS;
                     rFlags = rFlags & ~FLAG_EQUAL;
                     rFlags = rFlags & ~FLAG_GREATER;
@@ -228,45 +280,51 @@ int main(int argc, char* argv[]) {
                 break;
 
             case IF_EQ:
-                if ((rFlags & FLAG_EQUAL) == 0) break;
-                ip += 4;
-                push(ip);
-                ip = --addr;
+                if ((rFlags & FLAG_EQUAL)) {
+                    ip += 4;
+                    push(ip);
+                    ip = --addr;
+                }
                 break;
 
             case IF_NE:
-                if ((rFlags & FLAG_EQUAL) != 0) break;
-                ip += 4;
-                push(ip);
-                ip = --addr;
+                if ((rFlags & FLAG_EQUAL) == 0) {
+                    ip += 4;
+                    push(ip);
+                    ip = --addr;
+                }
                 break;
 
             case IF_LT:
-                if ((rFlags & FLAG_LESS) == 0) break;
-                ip += 4;
-                push(ip);
-                ip = --addr;
+                if ((rFlags & FLAG_LESS)) {
+                    ip += 4;
+                    push(ip);
+                    ip = --addr;
+                }
                 break;
 
             case IF_GE:
-                if ((rFlags & FLAG_LESS) != 0) break;
-                ip += 4;
-                push(ip);
-                ip = --addr;
+                if ((rFlags & FLAG_LESS) == 0) {
+                    ip += 4;
+                    push(ip);
+                    ip = --addr;
+                }
                 break;
 
             case IF_GT:
-                if ((rFlags & FLAG_GREATER) == 0) break;
-                ip += 4;
-                push(ip);
-                ip = --addr;
+                if ((rFlags & FLAG_GREATER)) {
+                    ip += 4;
+                    push(ip);
+                    ip = --addr;
+                }
                 break;
 
             case IF_LE:
-                if ((rFlags & FLAG_GREATER) != 0) break;
-                ip += 4;
-                push(ip);
-                ip = --addr;
+                if ((rFlags & FLAG_GREATER) == 0) {
+                    ip += 4;
+                    push(ip);
+                    ip = --addr;
+                }
                 break;
 
             case SYSTEM:
@@ -276,9 +334,12 @@ int main(int argc, char* argv[]) {
                         case SC_EXIT:
                             #ifdef DEBUG
                             dumpHeap();
+                            printf("Exiting with code %d\n", getRegister(0));
                             #endif
-                            exit(getRegister(0));
-                            break;
+                            {
+                                int ret = getRegister(0);
+                                return ret;
+                            }
 
                         case SC_READ_CON:
                             {
@@ -287,7 +348,7 @@ int main(int argc, char* argv[]) {
                                     error("Heap Error: Attempted to write outside of memory space (Address: %02x)\n", addr);
                                     return ERR_INVALID_ADDRESS;
                                 }
-                                if (addr >= HEAP_MAX - 19 || addr <= size) {
+                                if (addr <= size) {
                                     error("Heap Error: Attempted to write to reserved memory space\n");
                                     return ERR_RESERVED_ADDRESS;
                                 }
@@ -302,7 +363,7 @@ int main(int argc, char* argv[]) {
                                 #endif
 
                                 for (int i = 0; i < strlen(line); i++) {
-                                    heap[addr + i] = line[i];
+                                    memWriteByte(addr + i, line[i]);
                                 }
                             }
                             break;
@@ -322,24 +383,24 @@ int main(int argc, char* argv[]) {
                         case SC_OPEN:
                             {
                                 char* str = getString(getRegister(0));
-                                int fd = open(str, getRegister(1));
-                                free(str);
-                                if (fd < 0) {
-                                    error("IO Error: Failed to open file\n");
+                                int mode = getRegister(1);
+                                if (mode != 0 && mode != 1) {
+                                    error("Heap Error: Invalid mode for open\n");
                                     return ERR_IO;
                                 }
-                                setRegister(r0, fd);
+                                FILE* f = fopen(str, mode == 0 ? "r" : "w");
+                                files[fp++] = f;
+                                if (f == NULL) {
+                                    error("File Error: Could not open file \"%s\"\n", str);
+                                    return ERR_IO;
+                                }
+                                free(str);
+                                setRegister(r0, fp-1);
                             }
                             break;
 
                         case SC_CLOSE:
-                            {
-                                int cl = close(getRegister(0));
-                                if (cl < 0) {
-                                    error("IO Error: Failed to close file\n");
-                                    return ERR_IO;
-                                }
-                            }
+                            fclose(files[getRegister(0)]);
                             break;
 
                         case SC_READ:
@@ -349,13 +410,12 @@ int main(int argc, char* argv[]) {
                                 int len = getRegister(1);
                                 addr = getRegister(2);
                                 char* buf = malloc(len);
-                                int r = read(fd, buf, len);
-                                if (r < 0) {
-                                    error("Error: Failed to read from file\n");
-                                    return ERR_IO;
-                                }
-                                for (int i = 0; i < r; i++) {
-                                    heap[addr + i] = buf[i];
+                                error("File IO is not implemented yet\n");
+                                free(buf);
+                                break;
+                                fread(buf, len, 1, files[fd]);
+                                for (int i = 0; i < len; i++) {
+                                    memWriteByte(addr + i, buf[i]);
                                 }
                                 free(buf);
                                 free(str);
@@ -364,30 +424,18 @@ int main(int argc, char* argv[]) {
 
                         case SC_WRITE:
                             {
-                                char* str = NULL;
                                 int fd = getRegister(0);
                                 int len = getRegister(1);
                                 addr = getRegister(2);
-                                if (addr > HEAP_MAX || addr < 0) {
-                                    error("Heap Error: Attempted to write outside of memory space (Address: %02x)\n", addr);
-                                    return ERR_INVALID_ADDRESS;
-                                }
-                                if (addr >= HEAP_MAX - 19 || addr <= size) {
-                                    error("Heap Error: Attempted to write to reserved memory space\n");
-                                    return ERR_RESERVED_ADDRESS;
-                                }
 
-                                char* buf = malloc(len);
-                                for (int i = 0; i < len; i++) {
-                                    buf[i] = heap[addr + i];
-                                }
-                                int r = write(fd, buf, len);
-                                if (r < 0) {
-                                    error("Error: Failed to write to file\n");
-                                    return ERR_IO;
-                                }
+                                char* buf = malloc(len + 1);
+                                strncpy(buf, getString(addr), len);
+                                buf[len] = '\0';
+                                error("File IO is not implemented yet\n");
                                 free(buf);
-                                free(str);
+                                break;
+                                fprintf(files[fd], "%s", buf);
+                                free(buf);
                             }
                             break;
 
@@ -407,7 +455,7 @@ int main(int argc, char* argv[]) {
                 }
                 break;
 
-            case CALL:
+            case IF_TRUE:
                 ip += 4;
                 push(ip);
                 ip = --addr;
@@ -447,17 +495,7 @@ int main(int argc, char* argv[]) {
 }
 
 char* getString(uint32_t str_addr) {
-    char* str = (char*)malloc(sizeof(char) * HEAP_SIZE);
-    for (int i = 0; i < HEAP_SIZE; i++) {
-        str[i] = heap[str_addr + i];
-        if (str[i] == '\0') {
-            break;
-        }
-    }
-    #ifdef DEBUG
-    printf("Read String \"%s\" from heap\n", str);
-    #endif
-    return str;
+    return memGetString(str_addr);
 }
 
 #ifdef __cplusplus

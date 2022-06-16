@@ -1,18 +1,18 @@
-auto:
-		gcc -arch x86_64 -o bin/rex rex.c
+runtime:
+		gcc -Wunsequenced -o bin/rex rex.c
+
+runtime-debug:
+		gcc -Wunsequenced -o bin/rex-debug rex.c -DDEBUG
+
+compiler:
+		gcc -Wunsequenced -o bin/rasm rasm.cpp
+
+compiler-debug:
+		gcc -Wunsequenced -o bin/rasm-debug rasm.cpp -DDEBUG
 
 all:
-		gcc -arch x86_64 -o bin/rex-x86 rex.c
-		gcc -arch arm64 -o bin/rex-arm64 rex.c
-
-x86:
-		gcc -arch x86_64 -o bin/rex-x86 rex.c
-
-arm64:
-		gcc -arch arm64 -o bin/rex-arm64 rex.c
-
-debug:
-		gcc -o rex rex.c -DDEBUG
+		gcc -Wunsequenced -o bin/rasm rasm.cpp
+		gcc -Wunsequenced -o bin/rex rex.c
 
 run:
-		./rex main.rasm
+		./bin/rex test.rasm.out

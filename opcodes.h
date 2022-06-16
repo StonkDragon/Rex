@@ -1,6 +1,10 @@
 #ifndef REX_OPCODES_H
 #define REX_OPCODES_H
-#define REX_BYTECODE_VERSION "rbia-3"
+
+#define REX_BYTECODE_VER "rbia-4"
+#define REX_COMPILER_VER 4
+#define HEADER_SIZE      12
+#define HEADER           0xBACEBACE
 
 #define NOP              0x00
 #define MOVE             0x01   
@@ -36,7 +40,7 @@
 #define IF_LE            0x33
 #define IF_GE            0x34
 #define SYSTEM           0x35
-#define CALL             0x36
+#define IF_TRUE          0x36
 #define RETURN           0x37
 #define IF_NULL          0x38
 #define IF_NOTNULL       0x39

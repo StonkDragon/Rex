@@ -1,10 +1,7 @@
 #ifndef REX_REGISTER_H
 #define REX_REGISTER_H
 
-// __stderrp doesn't exist on all systems
-#ifndef __stderrp
-#define __stderrp stderr
-#endif
+#include <stdint.h>
 
 #define FLAG_ZERO               0b00000001
 #define FLAG_NEG                0b00000010
@@ -17,36 +14,147 @@
 
 #define STACK_SIZE              256
 #define HEAP_SIZE               131072
+#define HEAP_MAX                HEAP_SIZE-1
 
 uint32_t                        stack[STACK_SIZE];
-uint32_t                        heap[HEAP_SIZE];
+uint8_t                         heap[HEAP_SIZE];
 
-#define HEAP_MAX                HEAP_SIZE-1
-#define r0                      heap[HEAP_MAX]
-#define r1                      heap[HEAP_MAX - 1]
-#define r2                      heap[HEAP_MAX - 2]
-#define r3                      heap[HEAP_MAX - 3]
-#define r4                      heap[HEAP_MAX - 4]
-#define r5                      heap[HEAP_MAX - 5]
-#define r6                      heap[HEAP_MAX - 6]
-#define r7                      heap[HEAP_MAX - 7]
-#define r8                      heap[HEAP_MAX - 8]
-#define r9                      heap[HEAP_MAX - 9]
-#define r10                     heap[HEAP_MAX - 10]
-#define r11                     heap[HEAP_MAX - 11]
-#define r12                     heap[HEAP_MAX - 12]
-#define r13                     heap[HEAP_MAX - 13]
-#define r14                     heap[HEAP_MAX - 14]
-#define r15                     heap[HEAP_MAX - 15]
-#define ip                      heap[HEAP_MAX - 16]
-#define sp                      heap[HEAP_MAX - 17]
-#define rFlags                  heap[HEAP_MAX - 18]
-#define addr                    heap[HEAP_MAX - 19]
+uint32_t r0 = 0;
+uint32_t r1 = 0;
+uint32_t r2 = 0;
+uint32_t r3 = 0;
+uint32_t r4 = 0;
+uint32_t r5 = 0;
+uint32_t r6 = 0;
+uint32_t r7 = 0;
+uint32_t r8 = 0;
+uint32_t r9 = 0;
+uint32_t r10 = 0;
+uint32_t r11 = 0;
+uint32_t r12 = 0;
+uint32_t r13 = 0;
+uint32_t r14 = 0;
+uint32_t r15 = 0;
+uint32_t ip = 0;
+uint32_t sp = 0;
+uint32_t rFlags = 0;
+uint32_t addr = 0;
 
 #define push(s)                 stack[sp++] = s
 #define pop()                   stack[--sp]
-#define setRegister(reg, val)   heap[HEAP_MAX - reg] = val
-#define getRegister(reg)        heap[HEAP_MAX - reg]
 #define heapAddress             heap[addr]
+
+void memWriteInt(uint32_t addr, uint32_t value) {
+    heap[addr] = value & 0xFF;
+    heap[addr+1] = (value >> 8) & 0xFF;
+    heap[addr+2] = (value >> 16) & 0xFF;
+    heap[addr+3] = (value >> 24) & 0xFF;
+}
+
+void memWriteShort(uint32_t addr, uint16_t value) {
+    heap[addr] = value & 0xFF;
+    heap[addr+1] = (value >> 8) & 0xFF;
+}
+
+void memWriteByte(uint32_t addr, uint8_t value) {
+    heap[addr] = value & 0xFF;
+}
+
+void memWriteString(uint32_t addr, char* value) {
+    for (int i = 0; i < strlen(value); i++) {
+        heap[addr+i] = value[i];
+    }
+}
+
+void memWriteFloat(uint32_t addr, float value) {
+    memWriteInt(addr, *(uint32_t*)&value);
+}
+
+void memWriteLong(uint32_t addr, uint64_t value) {
+    memWriteInt(addr, value);
+    memWriteInt(addr+4, value >> 16);
+}
+
+void memWriteDouble(uint32_t addr, double value) {
+    memWriteLong(addr, *(uint64_t*)&value);
+}
+
+uint32_t memGetInt(uint32_t addr) {
+    return (heap[addr] | (heap[addr+1] << 8) | (heap[addr+2] << 16) | (heap[addr+3] << 24));
+}
+
+uint16_t memGetShort(uint32_t addr) {
+    return (heap[addr] | (heap[addr+1] << 8));
+}
+
+uint8_t memGetByte(uint32_t addr) {
+    return heap[addr];
+}
+
+char* memGetString(uint32_t addr) {
+    char* str = (char*)malloc(sizeof(char) * (HEAP_SIZE - addr));
+    for (int i = 0; i < HEAP_SIZE - addr; i++) {
+        str[i] = heap[addr+i];
+        if (str[i] == 0) {
+            break;
+        }
+    }
+    return str;
+}
+
+float memGetFloat(uint32_t addr) {
+    return *(float*)memGetInt(addr);
+}
+
+uint64_t memGetLong(uint32_t addr) {
+    return (memGetInt(addr) | (memGetInt(addr+4) << 16));
+}
+
+double memGetDouble(uint32_t addr) {
+    return *(double*)memGetLong(addr);
+}
+
+void setRegister(uint8_t reg, uint32_t val) {
+    switch (reg) {
+        case 0: r0 = val; break;
+        case 1: r1 = val; break;
+        case 2: r2 = val; break;
+        case 3: r3 = val; break;
+        case 4: r4 = val; break;
+        case 5: r5 = val; break;
+        case 6: r6 = val; break;
+        case 7: r7 = val; break;
+        case 8: r8 = val; break;
+        case 9: r9 = val; break;
+        case 10: r10 = val; break;
+        case 11: r11 = val; break;
+        case 12: r12 = val; break;
+        case 13: r13 = val; break;
+        case 14: r14 = val; break;
+        case 15: r15 = val; break;
+    }
+}
+
+uint32_t getRegister(uint8_t reg) {
+    switch (reg) {
+        case 0: return r0;
+        case 1: return r1;
+        case 2: return r2;
+        case 3: return r3;
+        case 4: return r4;
+        case 5: return r5;
+        case 6: return r6;
+        case 7: return r7;
+        case 8: return r8;
+        case 9: return r9;
+        case 10: return r10;
+        case 11: return r11;
+        case 12: return r12;
+        case 13: return r13;
+        case 14: return r14;
+        case 15: return r15;
+    }
+    return 0;
+}
 
 #endif // REX_REGISTER_H

@@ -46,7 +46,7 @@ Instruction Arguments can be:
 | `0x33` | `jle` | `IF_LE` | Jumps to `addr arg0` if last Comparison evaluated to `not greater than` | `int` |
 | `0x34` | `jge` | `IF_GE` | Jumps to `addr arg0` if last Comparison evaluated to `not less than` | `int` |
 | `0x35` | `syscall` | `SYSTEM` | Calls the System Function specified by r15 | `none` |
-| `0x36` | `call` | `CALL` | Calls the Function specified by `addr arg0` | `int` |
+| `0x36` | `call` | `IF_TRUE` | Calls the Function specified by `addr arg0` | `int` |
 | `0x37` | `ret` | `RET` | Returns from the current Function | `none` |
 | `0x38` | `jz` | `IF_NULL` | Jumps to `addr arg0` if Value on the Stack is 0 | `int` |
 | `0x39` | `jnz` | `IF_NOT_NULL` | Jumps to `addr arg0` if Value on the Stack is not 0 | `int` |
