@@ -30,5 +30,6 @@
 #define ERR_INVALID_OPCODE    6
 #define ERR_SYSTEM            7
 #define ERR_SYNTAX            8
+#define ERR_STACK             9
 
 #endif // REX_ERROR_H

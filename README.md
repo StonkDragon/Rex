@@ -38,48 +38,23 @@ Instruction Arguments can be:
 | `0x2B` | `inc` | `IINC` | Increments the Value in r0 by 1 | `byte` |
 | `0x2C` | `dec` | `IDEC` | Decrements the Value in r0 by 1 | `byte` |
 | `0x2D` | `cmp` | `CMP` | Compares the Value in r0 and `reg arg0` | `byte` |
-| `0x2E` | `jmp` | `GOTO` | Jumps to `addr arg0` | `int` |
-| `0x2F` | `jeq` | `IF_EQ` | Jumps to `addr arg0` if last Comparison evaluated to `equal` | `int` |
-| `0x30` | `jne` | `IF_NE` | Jumps to `addr arg0` if last Comparison evaluated to `not equal` | `int` |
-| `0x31` | `jlt` | `IF_LT` | Jumps to `addr arg0` if last Comparison evaluated to `less than` | `int` |
-| `0x32` | `jgt` | `IF_GT` | Jumps to `addr arg0` if last Comparison evaluated to `greater than` | `int` |
-| `0x33` | `jle` | `IF_LE` | Jumps to `addr arg0` if last Comparison evaluated to `not greater than` | `int` |
-| `0x34` | `jge` | `IF_GE` | Jumps to `addr arg0` if last Comparison evaluated to `not less than` | `int` |
+| `0x2E` | `goto` | `GOTO` | Set the Instruction Pointer to `addr arg0` | `int` |
+| `0x2F` | `jeq` | `IF_EQ` | Push the current Instruction Pointer onto the stack and jump to `addr arg0` if last Comparison evaluated to `equal` | `int` |
+| `0x30` | `jne` | `IF_NE` | Push the current Instruction Pointer onto the stack and jump to `addr arg0` if last Comparison evaluated to `not equal` | `int` |
+| `0x31` | `jlt` | `IF_LT` | Push the current Instruction Pointer onto the stack and jump to `addr arg0` if last Comparison evaluated to `less than` | `int` |
+| `0x32` | `jgt` | `IF_GT` | Push the current Instruction Pointer onto the stack and jump to `addr arg0` if last Comparison evaluated to `greater than` | `int` |
+| `0x33` | `jle` | `IF_LE` | Push the current Instruction Pointer onto the stack and jump to `addr arg0` if last Comparison evaluated to `not greater than` | `int` |
+| `0x34` | `jge` | `IF_GE` | Push the current Instruction Pointer onto the stack and jump to `addr arg0` if last Comparison evaluated to `not less than` | `int` |
 | `0x35` | `syscall` | `SYSTEM` | Calls the System Function specified by r15 | `none` |
-| `0x36` | `call` | `IF_TRUE` | Calls the Function specified by `addr arg0` | `int` |
+| `0x36` | `jsr` | `IF_TRUE` | Push the current Instruction Pointer onto the stack and jump to `addr arg0` | `int` |
 | `0x37` | `ret` | `RET` | Returns from the current Function | `none` |
-| `0x38` | `jz` | `IF_NULL` | Jumps to `addr arg0` if Value on the Stack is 0 | `int` |
-| `0x39` | `jnz` | `IF_NOT_NULL` | Jumps to `addr arg0` if Value on the Stack is not 0 | `int` |
+| `0x38` | `jz` | `IF_NULL` | Jumps to `addr arg0` if r0 is 0 | `int` |
+| `0x39` | `jnz` | `IF_NOT_NULL` | Jumps to `addr arg0` if r0 is not 0 | `int` |
 
 ## Memory Layout
 The Program is copied into Memory starting at Address 0. All other Memory is initialized to 0.
 
-The Default Memory Size is 131072 (`0x20000`) Cells with each Cell being 32-bit wide.
-
-### Reserved Memory Locations:
-| Address | Name | Description |
-|---------|------|-------------|
-| `0x1FFFF` | `r0` | Register 0 |
-| `0x1FFFE` | `r1` | Register 1 |
-| `0x1FFFD` | `r2` | Register 2 |
-| `0x1FFFC` | `r3` | Register 3 |
-| `0x1FFFB` | `r4` | Register 4 |
-| `0x1FFFA` | `r5` | Register 5 |
-| `0x1FFF9` | `r6` | Register 6 |
-| `0x1FFF8` | `r7` | Register 7 |
-| `0x1FFF7` | `r8` | Register 8 |
-| `0x1FFF6` | `r9` | Register 9 |
-| `0x1FFF5` | `r10` | Register 10 |
-| `0x1FFF4` | `r11` | Register 11 |
-| `0x1FFF3` | `r12` | Register 12 |
-| `0x1FFF2` | `r13` | Register 13 |
-| `0x1FFF1` | `r14` | Register 14 |
-| `0x1FFF0` | `r15` | Register 15 |
-| `0x1FFEF` | `ip` | Instruction Pointer |
-| `0x1FFEE` | `sp` | Stack Pointer |
-| `0x1FFED` | `fr` | Flags Register |
-| `0x1FFEC` | `addr` | Instruction Address Register (Used to temporarily store `int` Arguments) |
-
+The Default Memory Size is 16777216 (`0x1000000`) Bytes.
 
 ## System Calls
 | ID | C-Macro (Defined in `rexcall.h`) | Description |

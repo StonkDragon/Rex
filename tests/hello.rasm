@@ -1,22 +1,11 @@
 .here _main
-    ldi r0 0
-    st 100 r0
-
-.here _loop
     ldi r15 3
-    ldi r0 $_message
+    ldi r0 $message
     syscall
-
-    ldi r10 10
-    ld r0 100
-    inc
-    cmp r10
-    st 100 r0
-    jlt $_loop
 
     ldi r15 1
     ldi r0 0
     syscall
 
-.here _message
+.here message
     .asciiz "Hello, World!\n"

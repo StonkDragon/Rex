@@ -1,0 +1,27 @@
+.here _main
+    ldi r15 3
+    ldi r0 $_message1
+    syscall
+
+    jsr $test
+
+    ldi r0 $_message3
+    syscall
+
+    ldi r15 1
+    ldi r0 0
+    syscall
+
+.here test
+    ldi r0 $_message2
+    syscall
+    rts
+
+.here _message1
+    .asciiz "1st\n"
+
+.here _message2
+    .asciiz "2nd\n"
+
+.here _message3
+    .asciiz "3rd\n"

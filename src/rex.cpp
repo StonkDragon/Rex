@@ -17,18 +17,18 @@ extern "C" {
 #include <stdint.h>
 #include <errno.h>
 
-#include "rex/opcodes.h"
-#include "rex/rexcall.h"
-#include "rex/register.h"
-#include "rex/error.h"
-#include "rex/crc32.h"
-#include "rex/memoryengine.h"
+#include "headers/opcodes.h"
+#include "headers/rexcall.h"
+#include "headers/register.h"
+#include "headers/error.h"
+#include "headers/crc32.h"
+#include "headers/memoryengine.h"
 
 char*    buffer;
 FILE*    openFiles[STACK_SIZE];
 int      filePointer = 0;
 
-int main(int argc, char* argv[]) {
+int run(int argc, char* argv[]) {
     if (argc < 2) {
         error("Usage: %s <file>\n", argv[0]);
     }
@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
     free(crcData);
 
     uint32_t identifier = buffer[0] & 0xFF | (buffer[1] & 0xFF) << 8 | (buffer[2] & 0xFF) << 16 | (buffer[3] & 0xFF) << 24;
-    if (identifier != HEADER) {
+    if (identifier != FILE_IDENTIFIER) {
         native_error("Invalid file\n");
     }
 
@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
         switch (opcode) {
             #ifdef DEBUG
             case BREAKPOINT:
-                error("Debug: Hit Breakpoint\n");
+                printf("Debug: Hit Breakpoint\n");
                 me_heapDump();
                 getchar();
                 break;
@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
                 break;
 
             case PUSH:
-                push(addr);
+                me_push(addr);
                 ip += 4;
                 break;
 
@@ -135,20 +135,20 @@ int main(int argc, char* argv[]) {
                 break;
 
             case POP:
-                re_set(me_readByte(++ip), pop());
+                re_set(me_readByte(++ip), me_pop());
                 break;
 
             case DUP:
-                r15 = pop();
-                push(r15);
-                push(r15);
+                r15 = me_pop();
+                me_push(r15);
+                me_push(r15);
                 break;
 
             case SWAP:
-                r14 = pop();
-                r15 = pop();
-                push(r14);
-                push(r15);
+                r14 = me_pop();
+                r15 = me_pop();
+                me_push(r14);
+                me_push(r15);
                 break;
 
             case IADD:
@@ -238,7 +238,7 @@ int main(int argc, char* argv[]) {
             case IF_EQ:
                 ip += 4;
                 if ((rFlags & FLAG_EQUAL)) {
-                    push(ip);
+                    me_push(ip);
                     ip = --addr;
                 }
                 break;
@@ -246,7 +246,7 @@ int main(int argc, char* argv[]) {
             case IF_NE:
                 ip += 4;
                 if ((rFlags & FLAG_EQUAL) == 0) {
-                    push(ip);
+                    me_push(ip);
                     ip = --addr;
                 }
                 break;
@@ -254,7 +254,7 @@ int main(int argc, char* argv[]) {
             case IF_LT:
                 ip += 4;
                 if ((rFlags & FLAG_LESS)) {
-                    push(ip);
+                    me_push(ip);
                     ip = --addr;
                 }
                 break;
@@ -262,7 +262,7 @@ int main(int argc, char* argv[]) {
             case IF_GE:
                 ip += 4;
                 if ((rFlags & FLAG_LESS) == 0) {
-                    push(ip);
+                    me_push(ip);
                     ip = --addr;
                 }
                 break;
@@ -270,7 +270,7 @@ int main(int argc, char* argv[]) {
             case IF_GT:
                 ip += 4;
                 if ((rFlags & FLAG_GREATER)) {
-                    push(ip);
+                    me_push(ip);
                     ip = --addr;
                 }
                 break;
@@ -278,7 +278,7 @@ int main(int argc, char* argv[]) {
             case IF_LE:
                 ip += 4;
                 if ((rFlags & FLAG_GREATER) == 0) {
-                    push(ip);
+                    me_push(ip);
                     ip = --addr;
                 }
                 break;
@@ -289,8 +289,10 @@ int main(int argc, char* argv[]) {
                     {
                         case SC_EXIT:
                             #ifdef DEBUG
+                            printf("\n");
+                            printf("Debug: ");
                             me_heapDump();
-                            printf("Exiting with code %d\n", re_get(0));
+                            printf("Exited with exit code %d (0x%08x)\n", re_get(0), re_get(0));
                             #endif
                             {
                                 int ret = re_get(0);
@@ -401,7 +403,7 @@ int main(int argc, char* argv[]) {
                                 if (r < 0) {
                                     system_error("Failed to execute program\n");
                                 }
-                                push(r);
+                                me_push(r);
                             }
                             break;
                     }
@@ -410,28 +412,28 @@ int main(int argc, char* argv[]) {
 
             case IF_TRUE:
                 ip += 4;
-                push(ip);
+                me_push(ip);
                 ip = --addr;
                 break;
 
             case IF_NULL:
                 ip += 4;
-                if (stack[sp - 1] == 0) {
-                    push(ip);
+                if ((rFlags & FLAG_ZERO)) {
+                    me_push(ip);
                     ip = --addr;
                 }
                 break;
 
             case IF_NOTNULL:
                 ip += 4;
-                if (stack[sp - 1] != 0) {
-                    push(ip);
+                if ((rFlags & FLAG_ZERO) == 0) {
+                    me_push(ip);
                     ip = --addr;
                 }
                 break;
 
             case RETURN:
-                ip = --pop();
+                ip = me_pop() - 1;
                 break;
 
             default:
@@ -447,6 +449,14 @@ int main(int argc, char* argv[]) {
     me_heapDump();
     #endif
     return 0;
+}
+
+int main(int argc, char* argv[]) {
+    int r = run(argc, argv);
+    if (r != 0) {
+        me_heapDump();
+    }
+    return r;
 }
 
 #ifdef __cplusplus

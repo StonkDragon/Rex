@@ -11,10 +11,10 @@ extern "C" {
 #include <unistd.h>
 #include <time.h>
 
-#include "rex/register.h"
-#include "rex/opcodes.h"
-#include "rex/error.h"
-#include "rex/crc32.h"
+#include "headers/register.h"
+#include "headers/opcodes.h"
+#include "headers/error.h"
+#include "headers/crc32.h"
 
 #define incAddr(amount)      currentAddress += opLength(amount)
 #define MAX_LABEL_COUNT      512
@@ -49,31 +49,31 @@ int main(int argc, char* argv[]) {
     int size = ftell(file);
     fseek(file, 0, SEEK_SET);
     
-    char* buffer = (char*)malloc(size);
-    fread(buffer, size, 1, file);
+    char* file_buffer = (char*)malloc(size);
+    fread(file_buffer, size, 1, file);
     fclose(file);
 
-    char* token = strtok(buffer, " \n");
-    char** token_list = (char**)malloc(sizeof(char*) * size);
+    char* token = strtok(file_buffer, " \n");
+    char* token_buffer = (char*)malloc(sizeof(char) * size);
+    char* buffer = (char*)malloc(sizeof(char) * size);
     int i = 0;
     while (token != NULL) {
-        if (token[0] != ';') token_list[i] = token;
+        if (strlen(token) > 0) {
+            strcat(token_buffer, token);
+            strcat(token_buffer, " ");
+        }
         i++;
         token = strtok(NULL, " \n");
     }
-    char** tokens = (char**)malloc(sizeof(char*) * size);
-    memcpy(tokens, token_list, sizeof(char*) * size);
+    strcpy(buffer, token_buffer);
 
     uint32_t currentAddress = 0;
+    char* operand = strtok(token_buffer, " ");
     for (int i = 0; i < size; i++) {
-        if (tokens[i] == NULL) {
+        if (operand == NULL) {
             break;
         }
-        if (strlen(tokens[i]) == 0) {
-            continue;
-        }
-        char* operand = strtok(tokens[i], " ");
-        if (operand == NULL) {
+        if (strlen(operand) == 0) {
             continue;
         }
         if (strcmp(operand, "breakpoint") == 0) {
@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
             incAddr(IDEC);
         } else if (strcmp(operand, "cmp") == 0) {
             incAddr(CMP);
-        } else if (strcmp(operand, "jmp") == 0) {
+        } else if (strcmp(operand, "goto") == 0) {
             incAddr(GOTO);
         } else if (strcmp(operand, "jeq") == 0) {
             incAddr(IF_EQ);
@@ -142,75 +142,142 @@ int main(int argc, char* argv[]) {
             incAddr(IF_GE);
         } else if (strcmp(operand, "syscall") == 0) {
             incAddr(SYSTEM);
-        } else if (strcmp(operand, "call") == 0) {
+        } else if (strcmp(operand, "jsr") == 0) {
             incAddr(IF_TRUE);
-        } else if (strcmp(operand, "ret") == 0) {
+        } else if (strcmp(operand, "rts") == 0) {
             incAddr(RETURN);
         } else if (strcmp(operand, "jz") == 0) {
             incAddr(IF_NULL);
         } else if (strcmp(operand, "jnz") == 0) {
             incAddr(IF_NOTNULL);
         } else if (strcmp(operand, ".here") == 0) {
-            i++;
-            if (tokens[i] == NULL) {
+            operand = strtok(NULL, " ");
+            if (operand == NULL) {
                 syntax_error("Missing label after .here\n");
             }
-            if (strlen(tokens[i]) == 0) {
+            if (strlen(operand) == 0) {
                 syntax_error("Missing label after .here\n");
             }
-            rasm_label_t l = {tokens[i], currentAddress};
+            rasm_label_t l = {operand, currentAddress};
             labels[labelCount++] = l;
         } else if (strcmp(operand, ".asciiz") == 0) {
-            i++;
-            token_list[i]++;
-            if (token_list[i][strlen(token_list[i]) - 1] == '"') {
-                token_list[i][strlen(token_list[i]) - 1] = '\0';
+            operand = strtok(NULL, " ");
+            if (operand == NULL) {
+                syntax_error("Missing label after .asciiz\n");
             }
-            for (int j = 0; j < strlen(token_list[i]); j++) {
-                currentAddress++;
+            if (strlen(operand) == 0) {
+                syntax_error("Missing label after .asciiz\n");
             }
-            while (token_list[i] != NULL) {
-                i++;
-                if (token_list[i] == NULL) {
-                    break;
-                }
-                int len = strlen(token_list[i]);
-                char* word = (char*) malloc(sizeof(char) * len);
-                int k = 0;
-                for (int j = 0; j < len; j++) {
-                    if (token_list[i][j] == '\\') {
-                        if (token_list[i][j+1] == 'n') {
-                            word[k] = '\n';
-                        } else if (token_list[i][j+1] == 't') {
-                            word[k] = '\t';
-                        } else if (token_list[i][j+1] == '\\') {
-                            word[k] = '\\';
+            char* str = (char*) malloc(sizeof(char) * MAX_STRING_LENGTH);
+            if (operand[strlen(operand) - 1] == '"') {
+                operand[strlen(operand) - 1] = '\0';
+                strcpy(str, operand + 1);
+                incAddr(strlen(str));
+            }
+            int strIndex = 0;
+            if (operand[0] == '"') {
+                strcpy(str, operand + 1);
+            } else {
+                for (int i = 0; i < strlen(operand); i++) {
+                    if (operand[i] == '\\') {
+                        if (operand[i + 1] == 'n') {
+                            str[strIndex] = '\n';
+                            i++;
+                        } else if (operand[i + 1] == 't') {
+                            str[strIndex] = '\t';
+                            i++;
+                        } else if (operand[i + 1] == '\\') {
+                            str[strIndex] = '\\';
+                            i++;
+                        } else if (operand[i + 1] == '"') {
+                            str[strIndex] = '"';
+                            i++;
+                        } else {
+                            syntax_error("Invalid escape sequence\n");
                         }
-                        j++;
                     } else {
-                        word[k] = token_list[i][j];
+                        str[strIndex] = operand[i];
                     }
-                    k++;
+                    strIndex++;
                 }
-                while (k < len) {
-                    word[k] = 0;
-                    k++;
-                }
-                if (word[strlen(word) - 1] == '"') {
-                    word[strlen(word) - 1] = '\0';
-                    currentAddress++;
-                    for (int j = 0; j < strlen(word); j++) {
-                        currentAddress++;
-                    }
+                continue;
+            }
+            operand = strtok(NULL, " ");
+
+            int i = 0;
+            char last = operand[strlen(operand) - 1];
+            char* word = (char*) malloc(sizeof(char) * MAX_STRING_LENGTH);
+            const char* space = " ";
+
+            while (last != '"') {
+                if (operand == NULL) {
                     break;
                 }
-                currentAddress++;
-                for (int j = 0; j < strlen(word); j++) {
-                    currentAddress++;
+                if (operand[i] == '\\') {
+                    if (operand[i + 1] == 'n') {
+                        word[i] = '\n';
+                        i++;
+                    } else if (operand[i + 1] == 't') {
+                        word[i] = '\t';
+                        i++;
+                    } else if (operand[i + 1] == '\\') {
+                        word[i] = '\\';
+                        i++;
+                    } else if (operand[i + 1] == '"') {
+                        word[i] = '"';
+                        i++;
+                    } else {
+                        syntax_error("Invalid escape sequence\n");
+                    }
+                } else {
+                    word[i] = operand[i];
                 }
-                free(word);
+                if (i == strlen(operand)) {
+                    incAddr(strlen(str) + 1);
+                    operand = strtok(NULL, " ");
+                    last = operand[strlen(operand) - 1];
+                    i = 0;
+                    strcat(str, space);
+                    strcat(str, word);
+                    continue;
+                }
+                i++;
             }
-            currentAddress++;
+            if (operand == NULL) {
+                syntax_error("Missing closing quote\n");
+            }
+            char* word2 = (char*) malloc(sizeof(char) * MAX_STRING_LENGTH);
+            int j = 0;
+            for (int i = 0; i < strlen(operand); i++) {
+                if (operand[i] == '\\') {
+                    if (operand[i + 1] == 'n') {
+                        word2[j] = '\n';
+                    } else if (operand[i + 1] == 't') {
+                        word2[j] = '\t';
+                    } else if (operand[i + 1] == '\\') {
+                        word2[j] = '\\';
+                    } else if (operand[i + 1] == '"') {
+                        word2[j] = '"';
+                    } else {
+                        syntax_error("Invalid escape sequence\n");
+                    }
+                    i++;
+                } else {
+                    if (operand[i] == '"') {
+                        break;
+                    }
+                    word2[j] = operand[i];
+                }
+                j++;
+            }
+            strcat(str, space);
+            strcat(str, word2);
+            
+            currentAddress += strlen(str) + 1;
+            
+            free(str);
+            free(word);
+            free(word2);
         }
         #ifdef REX_FLOAT_EXT
         else if (strcmp(operand, "fldi") == 0) {
@@ -265,8 +332,9 @@ int main(int argc, char* argv[]) {
             error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
         }
         #endif
+        operand = strtok(NULL, " ");
     }
-    
+
     FILE* out = fopen(outFile, "wb");
     if (out == 0) {
         native_error("Could not open file %s\n", outFile);
@@ -275,8 +343,8 @@ int main(int argc, char* argv[]) {
     uint8_t* data = (uint8_t*)malloc(sizeof(uint8_t) * currentAddress + HEADER_SIZE);
     uint32_t ptr = 0;
 
+    operand = strtok(buffer, " ");
     for (int i = 0; i < size; i++) {
-        char* operand = token_list[i];
         if (operand == NULL) {
             continue;
         }
@@ -292,15 +360,15 @@ int main(int argc, char* argv[]) {
             data[ptr++] = NOP;
         } else if (strcmp(operand, "mov") == 0) {
             data[ptr++] = MOVE;
-            char* reg1 = token_list[++i];
-            char* reg2 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
+            char* reg2 = strtok(NULL, " ");
             checkNull(reg1, operand);
             checkNull(reg2, operand);
             data[ptr++] = regIdentifier(reg1);
             data[ptr++] = regIdentifier(reg2);
         } else if (strcmp(operand, "psh") == 0) {
             data[ptr++] = PUSH;
-            char* imm = token_list[++i];
+            char* imm = strtok(NULL, " ");
             checkNull(imm, operand);
             int num = atoi(imm);
             data[ptr++] = num & 0xFF;
@@ -309,22 +377,22 @@ int main(int argc, char* argv[]) {
             data[ptr++] = (num >> 24) & 0xFF;
         } else if (strcmp(operand, "st") == 0) {
             data[ptr++] = STORE;
-            char* address = token_list[++i];
+            char* address = strtok(NULL, " ");
             checkNull(address, operand);
             int num = atoi(address);
             data[ptr++] = num & 0xFF;
             data[ptr++] = (num >> 8) & 0xFF;
             data[ptr++] = (num >> 16) & 0xFF;
             data[ptr++] = (num >> 24) & 0xFF;
-            char* reg = token_list[++i];
+            char* reg = strtok(NULL, " ");
             checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
         } else if (strcmp(operand, "ldi") == 0) {
             data[ptr++] = LOAD_IMM;
-            char* reg = token_list[++i];
+            char* reg = strtok(NULL, " ");
             checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
-            char* imm = token_list[++i];
+            char* imm = strtok(NULL, " ");
             checkNull(imm, operand);
             if (imm[0] == '$') {
                 uint32_t add = getAddressOfLabel(imm);
@@ -341,10 +409,10 @@ int main(int argc, char* argv[]) {
             }
         } else if (strcmp(operand, "ld") == 0) {
             data[ptr++] = LOAD;
-            char* reg = token_list[++i];
+            char* reg = strtok(NULL, " ");
             checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
-            char* address = token_list[++i];
+            char* address = strtok(NULL, " ");
             checkNull(address, operand);
             if (address[0] == '$') {
                 uint32_t add = getAddressOfLabel(address);
@@ -361,7 +429,7 @@ int main(int argc, char* argv[]) {
             }
         } else if (strcmp(operand, "pop") == 0) {
             data[ptr++] = POP;
-            char* reg = token_list[++i];
+            char* reg = strtok(NULL, " ");
             checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
         } else if (strcmp(operand, "dup") == 0) {
@@ -370,54 +438,54 @@ int main(int argc, char* argv[]) {
             data[ptr++] = SWAP;
         } else if (strcmp(operand, "add") == 0) {
             data[ptr++] = IADD;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "sub") == 0) {
             data[ptr++] = ISUB;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "mul") == 0) {
             data[ptr++] = IMUL;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "div") == 0) {
             data[ptr++] = IDIV;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "mod") == 0) {
             data[ptr++] = IREM;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "neg") == 0) {
             data[ptr++] = INEG;
         } else if (strcmp(operand, "and") == 0) {
             data[ptr++] = IAND;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "or") == 0) {
             data[ptr++] = IOR;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "xor") == 0) {
             data[ptr++] = IXOR;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "shl") == 0) {
             data[ptr++] = ISHL;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "shr") == 0) {
             data[ptr++] = ISHR;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "not") == 0) {
@@ -428,12 +496,12 @@ int main(int argc, char* argv[]) {
             data[ptr++] = IDEC;
         } else if (strcmp(operand, "cmp") == 0) {
             data[ptr++] = CMP;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
-        } else if (strcmp(operand, "jmp") == 0) {
+        } else if (strcmp(operand, "goto") == 0) {
             data[ptr++] = GOTO;
-            char* label = token_list[++i];
+            char* label = strtok(NULL, " ");
             checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
@@ -450,7 +518,7 @@ int main(int argc, char* argv[]) {
             }
         } else if (strcmp(operand, "jeq") == 0) {
             data[ptr++] = IF_EQ;
-            char* label = token_list[++i];
+            char* label = strtok(NULL, " ");
             checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
@@ -467,7 +535,7 @@ int main(int argc, char* argv[]) {
             }
         } else if (strcmp(operand, "jne") == 0) {
             data[ptr++] = IF_NE;
-            char* label = token_list[++i];
+            char* label = strtok(NULL, " ");
             checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
@@ -484,7 +552,7 @@ int main(int argc, char* argv[]) {
             }
         } else if (strcmp(operand, "jlt") == 0) {
             data[ptr++] = IF_LT;
-            char* label = token_list[++i];
+            char* label = strtok(NULL, " ");
             checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
@@ -501,7 +569,7 @@ int main(int argc, char* argv[]) {
             }
         } else if (strcmp(operand, "jgt") == 0) {
             data[ptr++] = IF_GT;
-            char* label = token_list[++i];
+            char* label = strtok(NULL, " ");
             checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
@@ -518,7 +586,7 @@ int main(int argc, char* argv[]) {
             }
         } else if (strcmp(operand, "jle") == 0) {
             data[ptr++] = IF_LE;
-            char* label = token_list[++i];
+            char* label = strtok(NULL, " ");
             checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
@@ -535,7 +603,7 @@ int main(int argc, char* argv[]) {
             }
         } else if (strcmp(operand, "jge") == 0) {
             data[ptr++] = IF_GE;
-            char* label = token_list[++i];
+            char* label = strtok(NULL, " ");
             checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
@@ -552,9 +620,9 @@ int main(int argc, char* argv[]) {
             }
         } else if (strcmp(operand, "syscall") == 0) {
             data[ptr++] = SYSTEM;
-        } else if (strcmp(operand, "call") == 0) {
+        } else if (strcmp(operand, "jsr") == 0) {
             data[ptr++] = IF_TRUE;
-            char* label = token_list[++i];
+            char* label = strtok(NULL, " ");
             checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
@@ -569,11 +637,11 @@ int main(int argc, char* argv[]) {
                 data[ptr++] = (add >> 16) & 0xFF;
                 data[ptr++] = (add >> 24) & 0xFF;
             }
-        } else if (strcmp(operand, "ret") == 0) {
+        } else if (strcmp(operand, "rts") == 0) {
             data[ptr++] = RETURN;
         } else if (strcmp(operand, "jz") == 0) {
             data[ptr++] = IF_NULL;
-            char* label = token_list[++i];
+            char* label = strtok(NULL, " ");
             checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
@@ -590,7 +658,7 @@ int main(int argc, char* argv[]) {
             }
         } else if (strcmp(operand, "jnz") == 0) {
             data[ptr++] = IF_NOTNULL;
-            char* label = token_list[++i];
+            char* label = strtok(NULL, " ");
             checkNull(label, operand);
             if (label[0] == '$') {
                 uint32_t add = getAddressOfLabel(label);
@@ -606,81 +674,135 @@ int main(int argc, char* argv[]) {
                 data[ptr++] = (add >> 24) & 0xFF;
             }
         } else if (strcmp(operand, ".asciiz") == 0) {
-            i++;
-            if (token_list[i] == NULL) {
-                syntax_error("No String found after .asciiz");
-                exit(1);
+            operand = strtok(NULL, " ");
+            if (operand == NULL) {
+                syntax_error("Missing label after .asciiz\n");
             }
-            if (token_list[i][0] == '"') {
-                token_list[i]++;
+            if (strlen(operand) == 0) {
+                syntax_error("Missing label after .asciiz\n");
             }
-            if (token_list[i][strlen(token_list[i]) - 1] == '"') {
-                token_list[i][strlen(token_list[i]) - 1] = '\0';
+            char* str = (char*) malloc(sizeof(char) * MAX_STRING_LENGTH);
+            if (operand[strlen(operand) - 1] == '"') {
+                operand[strlen(operand) - 1] = '\0';
+                strcpy(str, operand + 1);
+                incAddr(strlen(str));
             }
-            for (int j = 0; j < strlen(token_list[i]); j++) {
-                if (token_list[i][j] == '\\') {
-                    if (token_list[i][j+1] == 'n') {
-                        data[ptr++] = '\n';
-                    } else if (token_list[i][j+1] == 't') {
-                        data[ptr++] = '\t';
-                    } else if (token_list[i][j+1] == '\\') {
-                        data[ptr++] = '\\';
-                    }
-                    j++;
-                } else {
-                    data[ptr++] = token_list[i][j];
-                }
-            }
-            while (token_list[i] != NULL) {
-                i++;
-                if (token_list[i] == NULL) {
-                    break;
-                }
-                int len = strlen(token_list[i]);
-                char* word = (char*) malloc(sizeof(char) * len);
-                int k = 0;
-                for (int j = 0; j < len; j++) {
-                    if (token_list[i][j] == '\\') {
-                        if (token_list[i][j+1] == 'n') {
-                            word[k] = '\n';
-                        } else if (token_list[i][j+1] == 't') {
-                            word[k] = '\t';
-                        } else if (token_list[i][j+1] == '\\') {
-                            word[k] = '\\';
+            int strIndex = 0;
+            if (operand[0] == '"') {
+                strcpy(str, operand + 1);
+            } else {
+                for (int i = 0; i < strlen(operand); i++) {
+                    if (operand[i] == '\\') {
+                        if (operand[i + 1] == 'n') {
+                            str[strIndex] = '\n';
+                            i++;
+                        } else if (operand[i + 1] == 't') {
+                            str[strIndex] = '\t';
+                            i++;
+                        } else if (operand[i + 1] == '\\') {
+                            str[strIndex] = '\\';
+                            i++;
+                        } else if (operand[i + 1] == '"') {
+                            str[strIndex] = '"';
+                            i++;
+                        } else {
+                            syntax_error("Invalid escape sequence\n");
                         }
-                        j++;
                     } else {
-                        word[k] = token_list[i][j];
+                        str[strIndex] = operand[i];
                     }
-                    k++;
+                    strIndex++;
                 }
-                while (k < len) {
-                    word[k] = 0;
-                    k++;
-                }
-                if (word[strlen(word) - 1] == '"') {
-                    word[strlen(word) - 1] = '\0';
-                    data[ptr++] = ' ';
-                    for (int j = 0; j < strlen(word); j++) {
-                        data[ptr++] = word[j];
-                    }
+                continue;
+            }
+            operand = strtok(NULL, " ");
+
+            int i = 0;
+            char last = operand[strlen(operand) - 1];
+            char* word = (char*) malloc(sizeof(char) * MAX_STRING_LENGTH);
+            const char* space = " ";
+
+            while (last != '"') {
+                if (operand == NULL) {
                     break;
                 }
-                data[ptr++] = ' ';
-                for (int j = 0; j < strlen(word); j++) {
-                    data[ptr++] = word[j];
+                if (operand[i] == '\\') {
+                    if (operand[i + 1] == 'n') {
+                        word[i] = '\n';
+                        i++;
+                    } else if (operand[i + 1] == 't') {
+                        word[i] = '\t';
+                        i++;
+                    } else if (operand[i + 1] == '\\') {
+                        word[i] = '\\';
+                        i++;
+                    } else if (operand[i + 1] == '"') {
+                        word[i] = '"';
+                        i++;
+                    } else {
+                        syntax_error("Invalid escape sequence\n");
+                    }
+                } else {
+                    word[i] = operand[i];
                 }
-                free(word);
+                if (i == strlen(operand)) {
+                    incAddr(strlen(str) + 1);
+                    operand = strtok(NULL, " ");
+                    last = operand[strlen(operand) - 1];
+                    i = 0;
+                    strcat(str, space);
+                    strcat(str, word);
+                    continue;
+                }
+                i++;
             }
-            data[ptr++] = 0;
+            if (operand == NULL) {
+                syntax_error("Missing closing quote\n");
+            }
+            char* word2 = (char*) malloc(sizeof(char) * MAX_STRING_LENGTH);
+            int j = 0;
+            for (int i = 0; i < strlen(operand); i++) {
+                if (operand[i] == '\\') {
+                    if (operand[i + 1] == 'n') {
+                        word2[j] = '\n';
+                    } else if (operand[i + 1] == 't') {
+                        word2[j] = '\t';
+                    } else if (operand[i + 1] == '\\') {
+                        word2[j] = '\\';
+                    } else if (operand[i + 1] == '"') {
+                        word2[j] = '"';
+                    } else {
+                        syntax_error("Invalid escape sequence\n");
+                    }
+                    i++;
+                } else {
+                    if (operand[i] == '"') {
+                        break;
+                    }
+                    word2[j] = operand[i];
+                }
+                j++;
+            }
+            strcat(str, space);
+            strcat(str, word2);
+
+            int strLen = strlen(str);
+            for (int i = 0; i < strLen; i++) {
+                data[ptr++] = str[i];
+            }
+            data[ptr++] = '\0';
+            free(str);
+            free(word);
+            free(word2);
+
         }
         #ifdef REX_FLOAT_EXT
         else if (strcmp(operand, "fldi") == 0) {
             data[ptr++] = LOAD_IMM_FLOAT;
-            char* reg = token_list[++i];
+            char* reg = strtok(NULL, " ");
             checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
-            char* imm = token_list[++i];
+            char* imm = strtok(NULL, " ");
             checkNull(imm, operand);
             float* num = (float*)malloc(sizeof(float));
             *num = atof(imm);
@@ -691,7 +813,7 @@ int main(int argc, char* argv[]) {
             data[ptr++] = (num_int >> 24) & 0xFF;
         } else if (strcmp(operand, "fst") == 0) {
             data[ptr++] = STORE_FLOAT;
-            char* address = token_list[++i];
+            char* address = strtok(NULL, " ");
             checkNull(address, operand);
             float* num = atof(address);
             int num_int = *(int*)num;
@@ -699,15 +821,15 @@ int main(int argc, char* argv[]) {
             data[ptr++] = (num_int >> 8) & 0xFF;
             data[ptr++] = (num_int >> 16) & 0xFF;
             data[ptr++] = (num_int >> 24) & 0xFF;
-            char* reg = token_list[++i];
+            char* reg = strtok(NULL, " ");
             checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
         } else if (strcmp(operand, "fld") == 0) {
             data[ptr++] = LOAD_FLOAT;
-            char* reg = token_list[++i];
+            char* reg = strtok(NULL, " ");
             checkNull(reg, operand);
             data[ptr++] = regIdentifier(reg);
-            char* address = token_list[++i];
+            char* address = strtok(NULL, " ");
             checkNull(address, operand);
             float* num = atof(address);
             int num_int = *(int*)num;
@@ -717,34 +839,34 @@ int main(int argc, char* argv[]) {
             data[ptr++] = (num_int >> 24) & 0xFF;
         } else if (strcmp(operand, "fadd") == 0) {
             data[ptr++] = FADD;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "fsub") == 0) {
             data[ptr++] = FSUB;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "fmul") == 0) {
             data[ptr++] = FMUL;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "fdiv") == 0) {
             data[ptr++] = FDIV;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "fmod") == 0) {
             data[ptr++] = FREM;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "fneg") == 0) {
             data[ptr++] = FNEG;
         } else if (strcmp(operand, "fcmp") == 0) {
             data[ptr++] = FCMP;
-            char* reg1 = token_list[++i];
+            char* reg1 = strtok(NULL, " ");
             checkNull(reg1, operand);
             data[ptr++] = regIdentifier(reg1);
         } else if (strcmp(operand, "finc") == 0) {
@@ -753,14 +875,15 @@ int main(int argc, char* argv[]) {
             data[ptr++] = FDEC;
         }
         #endif
+        operand = strtok(NULL, " ");
     }
 
     uint8_t* code = (uint8_t*) malloc(sizeof(uint8_t) * ptr + HEADER_SIZE);
     
-    code[0] = HEADER & 0xFF;
-    code[1] = (HEADER >> 8) & 0xFF;
-    code[2] = (HEADER >> 16) & 0xFF;
-    code[3] = (HEADER >> 24) & 0xFF;
+    code[0] = FILE_IDENTIFIER & 0xFF;
+    code[1] = (FILE_IDENTIFIER >> 8) & 0xFF;
+    code[2] = (FILE_IDENTIFIER >> 16) & 0xFF;
+    code[3] = (FILE_IDENTIFIER >> 24) & 0xFF;
 
     uint32_t crc = rex_crc32(data, ptr);
     code[4] = crc & 0xFF;
@@ -774,6 +897,7 @@ int main(int argc, char* argv[]) {
     code[9] = (_main >> 8) & 0xFF;
     code[10] = (_main >> 16) & 0xFF;
     code[11] = (_main >> 24) & 0xFF;
+    
     // code
     for (int i = 0; i < (ptr + HEADER_SIZE); i++) {
         code[i + HEADER_SIZE] = data[i];
@@ -784,9 +908,7 @@ int main(int argc, char* argv[]) {
 
     fclose(out);
     free(data);
-    free(token_list);
     free(token);
-    free(tokens);
     free(buffer);
     free(outFile);
 
