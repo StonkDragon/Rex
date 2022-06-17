@@ -1,6 +1,4 @@
 .vscode
 bin/*
 *.dSYM
-hello
-rasm
-rex
+*.dump

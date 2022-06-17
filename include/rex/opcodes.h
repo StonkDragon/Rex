@@ -4,7 +4,7 @@
 #define REX_BYTECODE_VER "rbia-4"
 #define REX_COMPILER_VER 4
 #define HEADER_SIZE      12
-#define HEADER           0xBACEBACE
+#define HEADER           0xCEBACEBA
 
 #define NOP              0x00
 #define MOVE             0x01   

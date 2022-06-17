@@ -2,6 +2,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#define RASM
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,15 +11,15 @@ extern "C" {
 #include <unistd.h>
 #include <time.h>
 
-#include "register.h"
-#include "opcodes.h"
-#include "error.h"
-#include "rutil.c"
+#include "rex/register.h"
+#include "rex/opcodes.h"
+#include "rex/error.h"
+#include "rex/crc32.h"
 
 #define incAddr(amount)      currentAddress += opLength(amount)
 #define MAX_LABEL_COUNT      512
 #define MAX_STRING_LENGTH    16384
-#define checkNull(reg, inst) if (reg == NULL) { syntax_error("Missing operand. (Instruction: %s)\n", inst); return ERR_SYNTAX; } if (strlen(reg) == 0) { syntax_error("Missing operand. (Instruction: %s)\n", inst); return ERR_SYNTAX; }
+#define checkNull(reg, inst) if (reg == NULL) { syntax_error("Missing operand. (Instruction: %s)\n", inst); } if (strlen(reg) == 0) { syntax_error("Missing operand. (Instruction: %s)\n", inst); }
 
 int opLength(int op);
 int regIdentifier(char* reg);
@@ -36,12 +37,10 @@ uint32_t labelCount = 0;
 int main(int argc, char* argv[]) {
     if (argc != 2) {
         usage_error("%s <file>\n", argv[0]);
-        return ERR_USAGE;
     }
     FILE* file = fopen(argv[1], "r");
     if (file == 0) {
         native_error("Could not open file %s\n", argv[1]);
-        return ERR_IO;
     }
     char* outFile = (char*) malloc(strlen(argv[1]) - 3);
     strncpy(outFile, argv[1], strlen(argv[1]) - 5);
@@ -155,14 +154,63 @@ int main(int argc, char* argv[]) {
             i++;
             if (tokens[i] == NULL) {
                 syntax_error("Missing label after .here\n");
-                return ERR_SYNTAX;
             }
             if (strlen(tokens[i]) == 0) {
                 syntax_error("Missing label after .here\n");
-                return ERR_SYNTAX;
             }
             rasm_label_t l = {tokens[i], currentAddress};
             labels[labelCount++] = l;
+        } else if (strcmp(operand, ".asciiz") == 0) {
+            i++;
+            token_list[i]++;
+            if (token_list[i][strlen(token_list[i]) - 1] == '"') {
+                token_list[i][strlen(token_list[i]) - 1] = '\0';
+            }
+            for (int j = 0; j < strlen(token_list[i]); j++) {
+                currentAddress++;
+            }
+            while (token_list[i] != NULL) {
+                i++;
+                if (token_list[i] == NULL) {
+                    break;
+                }
+                int len = strlen(token_list[i]);
+                char* word = (char*) malloc(sizeof(char) * len);
+                int k = 0;
+                for (int j = 0; j < len; j++) {
+                    if (token_list[i][j] == '\\') {
+                        if (token_list[i][j+1] == 'n') {
+                            word[k] = '\n';
+                        } else if (token_list[i][j+1] == 't') {
+                            word[k] = '\t';
+                        } else if (token_list[i][j+1] == '\\') {
+                            word[k] = '\\';
+                        }
+                        j++;
+                    } else {
+                        word[k] = token_list[i][j];
+                    }
+                    k++;
+                }
+                while (k < len) {
+                    word[k] = 0;
+                    k++;
+                }
+                if (word[strlen(word) - 1] == '"') {
+                    word[strlen(word) - 1] = '\0';
+                    currentAddress++;
+                    for (int j = 0; j < strlen(word); j++) {
+                        currentAddress++;
+                    }
+                    break;
+                }
+                currentAddress++;
+                for (int j = 0; j < strlen(word); j++) {
+                    currentAddress++;
+                }
+                free(word);
+            }
+            currentAddress++;
         }
         #ifdef REX_FLOAT_EXT
         else if (strcmp(operand, "fldi") == 0) {
@@ -222,7 +270,6 @@ int main(int argc, char* argv[]) {
     FILE* out = fopen(outFile, "wb");
     if (out == 0) {
         native_error("Could not open file %s\n", outFile);
-        return ERR_IO;
     }
 
     uint8_t* data = (uint8_t*)malloc(sizeof(uint8_t) * currentAddress + HEADER_SIZE);
@@ -560,12 +607,29 @@ int main(int argc, char* argv[]) {
             }
         } else if (strcmp(operand, ".asciiz") == 0) {
             i++;
-            token_list[i]++;
+            if (token_list[i] == NULL) {
+                syntax_error("No String found after .asciiz");
+                exit(1);
+            }
+            if (token_list[i][0] == '"') {
+                token_list[i]++;
+            }
             if (token_list[i][strlen(token_list[i]) - 1] == '"') {
                 token_list[i][strlen(token_list[i]) - 1] = '\0';
             }
             for (int j = 0; j < strlen(token_list[i]); j++) {
-                data[ptr++] = token_list[i][j];
+                if (token_list[i][j] == '\\') {
+                    if (token_list[i][j+1] == 'n') {
+                        data[ptr++] = '\n';
+                    } else if (token_list[i][j+1] == 't') {
+                        data[ptr++] = '\t';
+                    } else if (token_list[i][j+1] == '\\') {
+                        data[ptr++] = '\\';
+                    }
+                    j++;
+                } else {
+                    data[ptr++] = token_list[i][j];
+                }
             }
             while (token_list[i] != NULL) {
                 i++;
@@ -698,15 +762,13 @@ int main(int argc, char* argv[]) {
     code[2] = (HEADER >> 16) & 0xFF;
     code[3] = (HEADER >> 24) & 0xFF;
 
-    uint32_t crc = crc32(data, ptr);
+    uint32_t crc = rex_crc32(data, ptr);
     code[4] = crc & 0xFF;
     code[5] = (crc >> 8) & 0xFF;
     code[6] = (crc >> 16) & 0xFF;
     code[7] = (crc >> 24) & 0xFF;
     
-    char* mainLabel = "$_main";
-    
-    uint32_t _main = getAddressOfLabel(mainLabel);
+    uint32_t _main = getAddressOfLabel("_main");
 
     code[8] = _main & 0xFF;
     code[9] = (_main >> 8) & 0xFF;
@@ -734,9 +796,6 @@ int main(int argc, char* argv[]) {
 uint32_t getAddressOfLabel(char* label) {
     if (label[0] == '$') {
         label++;
-    } else {
-        syntax_error("Invalid Label: %s", label);
-        exit(-1);
     }
     for (int i = 0; i < labelCount; i++) {
         if (strcmp(labels[i].label, label) == 0) {
