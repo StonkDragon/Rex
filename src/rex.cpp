@@ -448,7 +448,7 @@ int run(int argc, char* argv[]) {
     #ifdef DEBUG
     me_heapDump();
     #endif
-    return 0;
+    return -1;
 }
 
 int main(int argc, char* argv[]) {

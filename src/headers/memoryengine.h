@@ -1,5 +1,5 @@
 #ifndef rex_memoryengine
-#define rex_memoryengine 2
+#define rex_memoryengine 3
 
 #include <stdint.h>
 #include <stdio.h>
@@ -7,7 +7,7 @@
 #include "error.h"
 
 #define STACK_SIZE         0x10000
-#define HEAP_SIZE          16777216
+#define HEAP_SIZE          0x1000000
 #define HEAP_MAX           HEAP_SIZE-1
 #define ERR_STACK          9
 #define heapAddress        heap[addr]
@@ -49,62 +49,30 @@ void me_heapDump() {
     FILE* f = fopen("rex-heapdump.dump", "w");
     fprintf(f, "Heap Dump:\n");
     fprintf(f, "  Address   .0 .1 .2 .3 .4 .5 .6 .7 .8 .9 .A .B .C .D .E .F  As Text\n");
-    uint32_t continuousZeros = 0;
-    uint32_t bytesDumped = 0;
-    
-    uint8_t printLastLine = 0;
+
+    uint32_t zeroes = 0;
 
     for (int i = 0; i < HEAP_SIZE - 1; i+=16) {
         for (int j = 0; j < 16; j++) {
             if (me_readByte(i+j) == 0) {
-                continuousZeros++;
+                zeroes++;
             } else {
-                continuousZeros = 0;
+                zeroes = 0;
             }
         }
-        if (continuousZeros <= 16) {
+        if (zeroes <= 16) {
             fprintf(f, "  0x%06x: ", i);
-        }
-        for (int j = 0; j < 16; j++) {
-            if (continuousZeros <= 16) {
+            for (int j = 0; j < 16; j++) {
                 fprintf(f, "%02x ", me_readByte(i+j));
-                bytesDumped++;
             }
-        }
-        if (continuousZeros >= 16 && continuousZeros < 32) {
-            while ((bytesDumped % 16) != 0) {
-                fprintf(f, "00 ");
-                bytesDumped++;
-            }
-            fprintf(f, "            ...\n");
-        }
-        if (continuousZeros <= 16) {
             fprintf(f, " ");
-        }
-        for (int j = 0; j < 16; j++) {
-            if (continuousZeros <= 16) {
+            for (int j = 0; j < 16; j++) {
                 fprintf(f, "%c ", isprint(me_readByte(i+j)) ? me_readByte(i+j) : '.');
             }
-        }
-
-        if (continuousZeros <= 16) {
             fprintf(f, "\n");
+        } else if (zeroes <= 32) {
+            fprintf(f, "            ...\n");
         }
-        if (i == HEAP_SIZE - 16 && continuousZeros <= 16) {
-            printLastLine = 1;
-        }
-    }
-    if (printLastLine == 0) {
-        int i = HEAP_SIZE - 16;
-        fprintf(f, "  0x%06x: ", i);
-        for (int j = 0; j < 16; j++) {
-            fprintf(f, "%02x ", me_readByte(i+j));
-        }
-        fprintf(f, " ");
-        for (int j = 0; j < 16; j++) {
-            fprintf(f, "%c ", isprint(me_readByte(i+j)) ? me_readByte(i+j) : '.');
-        }
-        fprintf(f, "\n");
     }
     
     fprintf(f, "\n");

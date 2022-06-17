@@ -1,4 +1,4 @@
-# Rex Bytecode Instruction Set (Version `RBIA-3`)
+# Rex Bytecode Instruction Set (Version `RBIA-4`)
 ## Instruction Layout
 `<instruction byte> <arg0 imm/addr> <arg1 imm/addr>`
 

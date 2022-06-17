@@ -1,3 +1,4 @@
+.at 1024
 .here _main
     ldi r15 3
     ldi r0 $message

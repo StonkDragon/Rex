@@ -15,6 +15,7 @@ extern "C" {
 #include "headers/opcodes.h"
 #include "headers/error.h"
 #include "headers/crc32.h"
+#include "headers/memoryengine.h"
 
 #define incAddr(amount)      currentAddress += opLength(amount)
 #define MAX_LABEL_COUNT      512
@@ -278,6 +279,20 @@ int main(int argc, char* argv[]) {
             free(str);
             free(word);
             free(word2);
+        } else if (strcmp(operand, ".at") == 0) {
+            operand = strtok(NULL, " ");
+            if (operand == NULL) {
+                syntax_error("Missing label after .at\n");
+            }
+            if (strlen(operand) == 0) {
+                syntax_error("Missing label after .at\n");
+            }
+            int pos = atoi(operand);
+            if (pos < 0) {
+                syntax_error("Invalid position: %d\n", pos);
+            }
+            //if (pos >= )
+            currentAddress += pos;
         }
         #ifdef REX_FLOAT_EXT
         else if (strcmp(operand, "fldi") == 0) {
@@ -340,7 +355,8 @@ int main(int argc, char* argv[]) {
         native_error("Could not open file %s\n", outFile);
     }
 
-    uint8_t* data = (uint8_t*)malloc(sizeof(uint8_t) * currentAddress + HEADER_SIZE);
+    uint8_t* data = (uint8_t*)malloc(sizeof(uint8_t) * HEAP_SIZE + HEADER_SIZE);
+    memset(data, 0, sizeof(uint8_t) * HEAP_SIZE + HEADER_SIZE);
     uint32_t ptr = 0;
 
     operand = strtok(buffer, " ");
@@ -795,6 +811,19 @@ int main(int argc, char* argv[]) {
             free(word);
             free(word2);
 
+        } else if (strcmp(operand, ".at") == 0) {
+            operand = strtok(NULL, " ");
+            if (operand == NULL) {
+                syntax_error("Missing label after .at\n");
+            }
+            if (strlen(operand) == 0) {
+                syntax_error("Missing label after .at\n");
+            }
+            int pos = atoi(operand);
+            if (pos < 0) {
+                syntax_error("Invalid position: %d\n", pos);
+            }
+            ptr = pos;
         }
         #ifdef REX_FLOAT_EXT
         else if (strcmp(operand, "fldi") == 0) {
@@ -905,6 +934,18 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < (ptr + HEADER_SIZE); i++) {
         fprintf(out, "%c", code[i]);
     }
+    
+    #ifdef DEBUG
+    char* debug = (char*)malloc(sizeof(char) * strlen(outFile) + 5);
+    strcpy(debug, outFile);
+    strcat(debug, ".dsym");
+    FILE* dsym = fopen(debug, "w");
+    for (int i = 0; i < labelCount; i++) {
+        fprintf(dsym, "%08x:%s\n", labels[i].address, labels[i].label);
+    }
+    fclose(dsym);
+    free(debug);
+    #endif
 
     fclose(out);
     free(data);
