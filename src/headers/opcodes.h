@@ -1,9 +1,8 @@
 #ifndef REX_OPCODES_H
 #define REX_OPCODES_H
 
-#define REX_BYTECODE_VER "rbia-4"
-#define REX_COMPILER_VER 4
-#define HEADER_SIZE      12
+#define REX_COMPILER_VER 6
+#define HEADER_SIZE      16
 #define FILE_IDENTIFIER  0xCEBACEBA
 
 #define NOP              0x00
@@ -12,6 +11,7 @@
 #define STORE            0x03
 #define LOAD_IMM         0x04
 #define LOAD             0x05
+#define PUSHI            0x06
 
 #define POP              0x1C
 #define DUP              0x1D

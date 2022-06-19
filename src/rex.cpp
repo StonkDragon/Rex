@@ -17,6 +17,7 @@ extern "C" {
 #include <stdint.h>
 #include <errno.h>
 
+#include "headers/cstring.h"
 #include "headers/opcodes.h"
 #include "headers/rexcall.h"
 #include "headers/register.h"
@@ -24,11 +25,11 @@ extern "C" {
 #include "headers/crc32.h"
 #include "headers/memoryengine.h"
 
-char*    buffer;
+string   buffer;
 FILE*    openFiles[STACK_SIZE];
 int      filePointer = 0;
 
-int run(int argc, char* argv[]) {
+int run(int argc, string argv[]) {
     if (argc < 2) {
         error("Usage: %s <file>\n", argv[0]);
     }
@@ -42,7 +43,7 @@ int run(int argc, char* argv[]) {
     int size = ftell(file);
     fseek(file, 0, SEEK_SET);
     
-    buffer = (char*)malloc(size);
+    buffer = (string)malloc(size);
     fread(buffer, size, 1, file);
     fclose(file);
     uint8_t* crcData = (uint8_t*)malloc(size - HEADER_SIZE);
@@ -70,72 +71,89 @@ int run(int argc, char* argv[]) {
         | (buffer[10] & 0xFF) << 16
         | (buffer[11] & 0xFF) << 24;
 
+    uint32_t version = buffer[12] & 0xFF
+        | (buffer[13] & 0xFF) << 8
+        | (buffer[14] & 0xFF) << 16
+        | (buffer[15] & 0xFF) << 24;
+    
+    if (version > REX_COMPILER_VER) {
+        native_error("The Program was compiled with a more recent Version.\nPlease update to Version v%d or higher to run this executable.\nCurrent version: v%d\n", version, REX_COMPILER_VER);
+    }
+    if (version < REX_COMPILER_VER) {
+        warn("The Program was compiled with a older Version. (Binary: v%d, Runtime: v%d)\nSome features may not work as advertised!\n", version, REX_COMPILER_VER);
+    }
+
     for (int i = HEADER_SIZE; i < size; i++) {
         me_writeByte(i - HEADER_SIZE, buffer[i]);
     }
 
     ip = _main;
 
-    while (ip < size) {
-        uint8_t opcode = me_readByte(ip);
-        addr = me_readInt(ip + 1);
+    uint32_t bpCounter = 0;
 
+    while (ip < size) {
+        uint32_t operand = me_readInt(ip);
+        uint8_t opcode = operand & 0xFF;
+        uint8_t reg1 = (operand >> 8) & 0xFF;
+        uint8_t reg2 = (operand >> 16) & 0xFF;
+        uint8_t reg3 = (operand >> 24) & 0xFF;
+        ip += 4;
+        addr = me_readInt(ip);
+        ip += 4;
 
         switch (opcode) {
-            #ifdef DEBUG
             case BREAKPOINT:
-                printf("Debug: Hit Breakpoint\n");
-                me_heapDump();
-                getchar();
-                break;
+            #ifdef DEBUG
+                {
+                    printf("Debug: Hit Breakpoint\n");
+                    string bp = (string)malloc(sizeof(char) * MAX_STRING_LENGTH);
+                    sprintf(bp, "bp-%d.dump", ++bpCounter);
+                    me_heapDump(bp);
+                    getchar();
+                }
             #endif
+                break;
 
             case NOP:
                 break;
 
             case PUSH:
+                me_push(re_get(reg1));
+                break;
+
+            case PUSHI:
                 me_push(addr);
-                ip += 4;
                 break;
 
             case STORE:
                 {
-                    ip++;
-                    addr = me_readInt(ip);
                     if (addr > HEAP_MAX || addr < 0) {
                         heap_error("Attempted to write outside of memory space (Address: %02x)\n", addr);
-                        me_heapDump();
+                        me_heapDump("memory.dump");
                     }
                     if (addr <= size) {
                         heap_error("Attempted to write to reserved memory space (Address: %02x)\n", addr);
-                        me_heapDump();
+                        me_heapDump("memory.dump");
                     }
-                    ip += 4;
-                    uint32_t value = re_get(me_readByte(ip));
+                    uint32_t value = re_get(reg1);
                     me_writeInt(addr, value);
                 }
                 break;
 
             case LOAD:
-                ip++;
-                addr = me_readInt(ip + 1);
-                re_set(me_readByte(ip), heapAddress);
-                ip += 4;
+                re_set(reg1, heapAddress);
                 break;
 
             case LOAD_IMM:
-                ip++;
-                addr = me_readInt(ip + 1);
-                re_set(me_readByte(ip), addr);
-                ip += 4;
+                re_set(reg1, addr);
                 break;
 
             case MOVE:
-                re_set(me_readByte(++ip), re_get(me_readByte(++ip)));
+                re_set(reg1, re_get(reg2));
                 break;
 
             case POP:
-                re_set(me_readByte(++ip), me_pop());
+                re_set(reg1, me_pop());
                 break;
 
             case DUP:
@@ -152,23 +170,23 @@ int run(int argc, char* argv[]) {
                 break;
 
             case IADD:
-                r0 += re_get(me_readByte(++ip));
+                r0 += re_get(reg1);
                 break;
 
             case ISUB:
-                r0 -= re_get(me_readByte(++ip));
+                r0 -= re_get(reg1);
                 break;
 
             case IMUL:
-                r0 *= re_get(me_readByte(++ip));
+                r0 *= re_get(reg1);
                 break;
 
             case IDIV:
-                r0 /= re_get(me_readByte(++ip));
+                r0 /= re_get(reg1);
                 break;
 
             case IREM:
-                r0 %= re_get(me_readByte(++ip));
+                r0 %= re_get(reg1);
                 break;
 
             case INEG:
@@ -184,23 +202,23 @@ int run(int argc, char* argv[]) {
                 break;
 
             case IAND:
-                r0 &= re_get(me_readByte(++ip));
+                r0 &= re_get(reg1);
                 break;
 
             case IOR:
-                r0 |= re_get(me_readByte(++ip));
+                r0 |= re_get(reg1);
                 break;
 
             case IXOR:
-                r0 ^= re_get(me_readByte(++ip));
+                r0 ^= re_get(reg1);
                 break;
 
             case ISHL:
-                r0 <<= re_get(me_readByte(++ip));
+                r0 <<= re_get(reg1);
                 break;
 
             case ISHR:
-                r0 >>= re_get(me_readByte(++ip));
+                r0 >>= re_get(reg1);
                 break;
 
             case INOT:
@@ -209,7 +227,7 @@ int run(int argc, char* argv[]) {
 
             case CMP:
                 {
-                    uint32_t value = re_get(me_readByte(++ip));
+                    uint32_t value = re_get(reg1);
                     if (r0 == value) {
                         rFlags = rFlags | FLAG_EQUAL;
                         rFlags = rFlags & ~FLAG_LESS;
@@ -232,14 +250,14 @@ int run(int argc, char* argv[]) {
                 break;
 
             case GOTO:
-                ip = --addr;
+                ip = addr;
                 break;
 
             case IF_EQ:
                 ip += 4;
                 if ((rFlags & FLAG_EQUAL)) {
                     me_push(ip);
-                    ip = --addr;
+                    ip = addr;
                 }
                 break;
 
@@ -247,7 +265,7 @@ int run(int argc, char* argv[]) {
                 ip += 4;
                 if ((rFlags & FLAG_EQUAL) == 0) {
                     me_push(ip);
-                    ip = --addr;
+                    ip = addr;
                 }
                 break;
 
@@ -255,7 +273,7 @@ int run(int argc, char* argv[]) {
                 ip += 4;
                 if ((rFlags & FLAG_LESS)) {
                     me_push(ip);
-                    ip = --addr;
+                    ip = addr;
                 }
                 break;
 
@@ -263,7 +281,7 @@ int run(int argc, char* argv[]) {
                 ip += 4;
                 if ((rFlags & FLAG_LESS) == 0) {
                     me_push(ip);
-                    ip = --addr;
+                    ip = addr;
                 }
                 break;
 
@@ -271,7 +289,7 @@ int run(int argc, char* argv[]) {
                 ip += 4;
                 if ((rFlags & FLAG_GREATER)) {
                     me_push(ip);
-                    ip = --addr;
+                    ip = addr;
                 }
                 break;
 
@@ -279,7 +297,7 @@ int run(int argc, char* argv[]) {
                 ip += 4;
                 if ((rFlags & FLAG_GREATER) == 0) {
                     me_push(ip);
-                    ip = --addr;
+                    ip = addr;
                 }
                 break;
 
@@ -291,7 +309,7 @@ int run(int argc, char* argv[]) {
                             #ifdef DEBUG
                             printf("\n");
                             printf("Debug: ");
-                            me_heapDump();
+                            me_heapDump("memory.dump");
                             printf("Exited with exit code %d (0x%08x)\n", re_get(0), re_get(0));
                             #endif
                             {
@@ -304,11 +322,11 @@ int run(int argc, char* argv[]) {
                                 addr = re_get(0);
                                 if (addr > HEAP_MAX || addr < 0) {
                                     heap_error("Attempted to write outside of memory space (Address: %02x)\n", addr);
-                                    me_heapDump();
+                                    me_heapDump("memory.dump");
                                 }
                                 if (addr <= size) {
                                     heap_error("Attempted to write to reserved memory space (Address: %02x)\n", addr);
-                                    me_heapDump();
+                                    me_heapDump("memory.dump");
                                 }
                                 char *line = NULL;
                                 size_t len = 0;
@@ -328,7 +346,7 @@ int run(int argc, char* argv[]) {
 
                         case SC_WRITE_CON:
                             {
-                                char* str = me_readString(re_get(0));
+                                string str = me_readString(re_get(0));
                                 printf("%s", str);
                                 free(str);
                             }
@@ -340,7 +358,7 @@ int run(int argc, char* argv[]) {
 
                         case SC_OPEN:
                             {
-                                char* str = me_readString(re_get(0));
+                                string str = me_readString(re_get(0));
                                 int mode = re_get(1);
                                 if (mode != 0 && mode != 1) {
                                     system_error("Invalid mode for open\n");
@@ -361,11 +379,11 @@ int run(int argc, char* argv[]) {
 
                         case SC_READ:
                             {
-                                char* str = NULL;
+                                string str = NULL;
                                 int fd = re_get(0);
                                 int len = re_get(1);
                                 addr = re_get(2);
-                                char* buf = (char*)malloc(len);
+                                string buf = (string)malloc(len);
                                 error("File IO is not implemented yet\n");
                                 free(buf);
                                 break;
@@ -384,7 +402,7 @@ int run(int argc, char* argv[]) {
                                 int len = re_get(1);
                                 addr = re_get(2);
 
-                                char* buf = (char*)malloc(len + 1);
+                                string buf = (string)malloc(len + 1);
                                 strncpy(buf, me_readString(addr), len);
                                 buf[len] = '\0';
                                 error("File IO is not implemented yet\n");
@@ -397,7 +415,7 @@ int run(int argc, char* argv[]) {
 
                         case SC_EXEC:
                             {
-                                char* str = me_readString(re_get(0));
+                                string str = me_readString(re_get(0));
                                 int r = system(str);
                                 free(str);
                                 if (r < 0) {
@@ -411,50 +429,46 @@ int run(int argc, char* argv[]) {
                 break;
 
             case IF_TRUE:
-                ip += 4;
                 me_push(ip);
-                ip = --addr;
+                ip = addr;
                 break;
 
             case IF_NULL:
-                ip += 4;
                 if ((rFlags & FLAG_ZERO)) {
                     me_push(ip);
-                    ip = --addr;
+                    ip = addr;
                 }
                 break;
 
             case IF_NOTNULL:
-                ip += 4;
                 if ((rFlags & FLAG_ZERO) == 0) {
                     me_push(ip);
-                    ip = --addr;
+                    ip = addr;
                 }
                 break;
 
             case RETURN:
-                ip = me_pop() - 1;
+                ip = me_pop();
                 break;
 
             default:
                 error("Error: Unknown opcode 0x%02x\n", opcode);
             #ifdef DEBUG
-                me_heapDump();
+                me_heapDump("memory.dump");
             #endif
                 break;
         }
-        ip++;
     }
     #ifdef DEBUG
-    me_heapDump();
+    me_heapDump("memory.dump");
     #endif
     return -1;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, string argv[]) {
     int r = run(argc, argv);
     if (r != 0) {
-        me_heapDump();
+        me_heapDump("memory.dump");
     }
     return r;
 }
