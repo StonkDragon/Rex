@@ -15,16 +15,6 @@ Instruction Arguments can be:
 - `imm`: Immediate Value
 - `addr`: Address
 
-## File Header
-The File Header has a length of `16` bytes.
-
-    <int magic> <int checksum> <int start> <int version>
-
-magic: `0xCEBACEBA` (File type identifier for Rex Bytecode)
-checksum: `<varies>` (Calculated by generating a crc32 checksum of the code)
-start: `<varies>` (Address of the first instruction)
-version: `<varies>` (Version of the compiler used to compile the code)
-
 ## Instructions
 | Hex | Name | C-Macro (Defined in `opcodes.h`) | Description |
 |-----|------|--------------------------------|-------------|
@@ -34,7 +24,7 @@ version: `<varies>` (Version of the compiler used to compile the code)
 | `0x03` | `st` | `STORE` | Stores the Value in `reg1` at `addr` |
 | `0x04` | `ldi` | `LOAD_IMM` | Loads `imm` into `reg0` |
 | `0x05` | `ld` | `LOAD` | Loads the Value at `addr` into `reg0` |
-| `0x06` | `psi` | `PUSHI` | Pushes a 32 Bit Integer onto the Stack |
+| `0x06` | `psi` | `PUSHI` | Pushes `imm` onto the Stack |
 | `0x1C` | `pop` | `POP` | Pops the Value on the Stack and stores it in `reg0` |
 | `0x1D` | `dup` | `DUP` | Duplicate the Value on the Stack |
 | `0x1E` | `swap` | `SWAP` | Swaps the top two Values on the Stack |
@@ -66,6 +56,19 @@ version: `<varies>` (Version of the compiler used to compile the code)
 | `0x38` | `jz` | `IF_NULL` | Jumps to `addr` if r0 is 0 |
 | `0x39` | `jnz` | `IF_NOT_NULL` | Jumps to `addr` if r0 is not 0 |
 
+## File Header
+The File Header has a length of `16` bytes.
+
+    <int magic> <int checksum> <int start> <int version>
+
+magic: `0xCEBACEBA` (File type identifier for Rex Bytecode)
+
+checksum: `<varies>` (Calculated by generating a crc32 checksum of the code)
+
+start: `<varies>` (Address of the first instruction)
+
+version: `<varies>` (Version of the compiler used to compile the code)
+
 ## Memory Layout
 The Program is copied into Memory starting at Address 0. All other Memory is initialized to 0.
 
@@ -82,5 +85,5 @@ The Default Memory Size is 16777216 (`0x1000000`) Bytes.
 | `5` | `SC_OPEN` | Open File by Name stored at addr in r0 with flags stored in r1 |
 | `6` | `SC_CLOSE` | Close File by File Descriptor stored in r0 |
 | `7` | `SC_READ` | Read from File by File Descriptor stored in r0 with length stored in r1 to addr in r2 |
-| `8` | `SC_WRITE` | Write to File by File Descriptor stored in r0 with length stored in r1 from String at addr in r1 |
+| `8` | `SC_WRITE` | Write to File by File Descriptor stored in r0 with length stored in r1 from String at addr in r2 |
 | `9` | `SC_EXEC` | Execute System Command stored at addr in r0 and push the Return Value onto the Stack |
