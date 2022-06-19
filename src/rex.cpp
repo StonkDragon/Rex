@@ -26,7 +26,7 @@ extern "C" {
 #include "headers/memoryengine.h"
 
 string   buffer;
-FILE*    openFiles[STACK_SIZE];
+FILE**   openFiles;
 int      filePointer = 0;
 
 int run(int argc, string argv[]) {
@@ -46,16 +46,17 @@ int run(int argc, string argv[]) {
     buffer = (string)malloc(size);
     fread(buffer, size, 1, file);
     fclose(file);
+    
+    uint32_t identifier = buffer[0] & 0xFF | (buffer[1] & 0xFF) << 8 | (buffer[2] & 0xFF) << 16 | (buffer[3] & 0xFF) << 24;
+    if (identifier != FILE_IDENTIFIER) {
+        native_error("Invalid file\n");
+    }
+
     uint8_t* crcData = (uint8_t*)malloc(size - HEADER_SIZE);
     memcpy(crcData, buffer + HEADER_SIZE, size - HEADER_SIZE);
     
     uint32_t crc = rex_crc32(crcData, size - HEADER_SIZE);
     free(crcData);
-
-    uint32_t identifier = buffer[0] & 0xFF | (buffer[1] & 0xFF) << 8 | (buffer[2] & 0xFF) << 16 | (buffer[3] & 0xFF) << 24;
-    if (identifier != FILE_IDENTIFIER) {
-        native_error("Invalid file\n");
-    }
 
     uint32_t dataCRC = buffer[4] & 0xFF
         | (buffer[5] & 0xFF) << 8
@@ -86,6 +87,8 @@ int run(int argc, string argv[]) {
     for (int i = HEADER_SIZE; i < size; i++) {
         me_writeByte(i - HEADER_SIZE, buffer[i]);
     }
+
+    openFiles = (FILE**)malloc(sizeof(FILE*) * STACK_SIZE);
 
     ip = _main;
 
@@ -347,7 +350,31 @@ int run(int argc, string argv[]) {
                         case SC_WRITE_CON:
                             {
                                 string str = me_readString(re_get(0));
-                                printf("%s", str);
+                                for (int i = 0; i < strlen(str); i++) {
+                                    if (str[i] == 0) break;
+                                    if (str[i] == '\\') {
+                                        i++;
+                                        switch (str[i]) {
+                                            case 'n':
+                                                printf("\n");
+                                                break;
+                                            case 't':
+                                                printf("\t");
+                                                break;
+                                            case 'r':
+                                                printf("\r");
+                                                break;
+                                            case '\\':
+                                                printf("\\");
+                                                break;
+                                            default:
+                                                printf("%c", str[i]);
+                                                break;
+                                        }
+                                    } else {
+                                        printf("%c", str[i]);
+                                    }
+                                }
                                 free(str);
                             }
                             break;
@@ -364,12 +391,12 @@ int run(int argc, string argv[]) {
                                     system_error("Invalid mode for open\n");
                                 }
                                 FILE* f = fopen(str, mode == 0 ? "r" : "w");
-                                openFiles[filePointer++] = f;
                                 if (f == NULL) {
                                     system_error("IO: Could not open file \"%s\"\n", str);
                                 }
+                                openFiles[filePointer++] = f;
                                 free(str);
-                                re_set(r0, filePointer-1);
+                                me_push(filePointer - 1);
                             }
                             break;
 
@@ -384,7 +411,7 @@ int run(int argc, string argv[]) {
                                 int len = re_get(1);
                                 addr = re_get(2);
                                 string buf = (string)malloc(len);
-                                error("File IO is not implemented yet\n");
+                                
                                 free(buf);
                                 break;
                                 fread(buf, len, 1, openFiles[fd]);
@@ -402,14 +429,32 @@ int run(int argc, string argv[]) {
                                 int len = re_get(1);
                                 addr = re_get(2);
 
-                                string buf = (string)malloc(len + 1);
-                                strncpy(buf, me_readString(addr), len);
-                                buf[len] = '\0';
-                                error("File IO is not implemented yet\n");
+                                string buf = (string) malloc(len);
+                                for (int i = 0; i < len; i++) {
+                                    buf[i] = me_readByte(addr + i);
+                                }
+
+                                for (int i = 0; i < strlen(buf); i++) {
+                                    if (buf[i] == '\0') break;
+                                    if (buf[i] == '\\') {
+                                        i++;
+                                        if (buf[i] == 'n') {
+                                            fprintf(openFiles[fd], "\n");
+                                        } else if (buf[i] == 't') {
+                                            fprintf(openFiles[fd], "\t");
+                                        } else if (buf[i] == 'r') {
+                                            fprintf(openFiles[fd], "\r");
+                                        } else if (buf[i] == '\\') {
+                                            fprintf(openFiles[fd], "\\");
+                                        } else {
+                                            fprintf(openFiles[fd], "%c", buf[i]);
+                                        }
+                                    } else {
+                                        fprintf(openFiles[fd], "%c", buf[i]);
+                                    }
+                                }
                                 free(buf);
                                 break;
-                                fprintf(openFiles[fd], "%s", buf);
-                                free(buf);
                             }
                             break;
 

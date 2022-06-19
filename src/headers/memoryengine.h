@@ -29,7 +29,7 @@ void        me_writeString(uint32_t addr, string value);
 void        me_writeFloat(uint32_t addr, float value);
 void        me_writeLong(uint32_t addr, uint64_t value);
 void        me_writeDouble(uint32_t addr, double value);
-uint32_t    me_readInt(uint32_t addr);
+int         me_readInt(uint32_t addr);
 uint16_t    me_readShort(uint32_t addr);
 uint8_t     me_readByte(uint32_t addr);
 string      me_readString(uint32_t addr);
@@ -181,7 +181,7 @@ void me_writeDouble(uint32_t addr, double value) {
     me_writeLong(addr, *(uint64_t*)&value);
 }
 
-uint32_t me_readInt(uint32_t addr) {
+int me_readInt(uint32_t addr) {
     return (heap[addr] | (heap[addr+1] << 8) | (heap[addr+2] << 16) | (heap[addr+3] << 24));
 }
 
