@@ -21,41 +21,47 @@ typedef struct {
     uint32_t address;
 } rasm_label_t;
 
-rasm_label_t* labels = (rasm_label_t*) malloc(sizeof(rasm_label_t) * MAX_LABEL_COUNT);
+rasm_label_t* labels;
 uint32_t      labelCount = 0;
 uint32_t      byteAlignment = 16;
 
-void bin_checkIsNumber(string label, string instruction) {
-    if (label[0] == '$') {
-        return;
-    }
-    for (int i = 0; i < strlen(label); i++) {
-        if (!isdigit(label[i])) {
-            syntax_error("Expected number but got \"%s\" (Instruction: %s)\n", label, instruction);
+#define bin_checkIsNumber(label, instruction) { \
+    for (size_t i = 0; i < strlen(label); i++) { \
+        if (!isdigit(label[i])) { \
+            syntax_error("Expected number but got \"%s\" (Instruction: %s)\n", label, instruction); \
+        } \
+    } \
+}
+
+#define bin_checkIsRegister(label, instruction) { \
+    if (label[0] != 'r' && label[0] != 'f' && label[0] != 'R' && label[0] != 'F') { \
+        syntax_error("Expected register but got \"%s\" (Instruction: %s)\n", label, instruction); \
+    } \
+    if (regIdentifier(label) > 15 || regIdentifier(label) < 0) { \
+        syntax_error("Unknown Register \"%s\" (Instruction: %s)\n", label, instruction); \
+    } \
+}
+
+#define bin_checkNull(label, instruction) { \
+    if (label == NULL || strlen(label) == 0) { \
+        syntax_error("Expected Value but got nothing (Instruction: %s)\n", instruction); \
+    } \
+}
+
+string bin_getEntryPointLabel() {
+    for (size_t i = 0; i < labelCount; i++) {
+        if (strcmp(labels[i].label, "_main") == 0) {
+            return labels[i].label;
         }
     }
-}
-
-void bin_checkIsRegister(string label, string instruction) {
-    if (label[0] != 'r') {
-        syntax_error("Expected number but got \"%s\" (Instruction: %s)\n", label, instruction);
-    }
-    if (regIdentifier(label) > 15 || regIdentifier(label) < 0) {
-        syntax_error("Unknown Register \"%s\" (Instruction: %s)\n", label, instruction);
-    }
-}
-
-void bin_checkNull(string label, string instruction) {
-    if (label == NULL || strlen(label) == 0) {
-        syntax_error("Expected Value but got nothing (Instruction: %s)\n", instruction);
-    }
+    syntax_error("Could not find entry point label\n");
 }
 
 uint32_t bin_getAddressOfLabel(string label) {
     if (label[0] == '$') {
         label++;
     }
-    for (int i = 0; i < labelCount; i++) {
+    for (size_t i = 0; i < labelCount; i++) {
         if (strcmp(labels[i].label, label) == 0) {
             return labels[i].address;
         }
@@ -85,7 +91,7 @@ void bin_parseLabels(string data, uint32_t size) {
     uint32_t currentAddress = 0;
     string operand = strtok(data, " ");
 
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         if (operand == NULL) {
             break;
         }
@@ -194,7 +200,7 @@ void bin_parseLabels(string data, uint32_t size) {
                 syntax_error("Alignment must be bigger than 8\n");
             }
         } else if (strcmp(operand, ".asciiz") == 0) {      
-            string str = (string) malloc(sizeof(char) * MAX_STRING_LENGTH);
+            string str = (string) malloc(MAX_STRING_LENGTH);
             str[0] = '\0';
             operand = strtok(NULL, " ");
             if (operand == NULL || strlen(operand) == 0) {
@@ -238,9 +244,7 @@ void bin_parseLabels(string data, uint32_t size) {
                 syntax_error("Invalid position: %d\n", pos);
             }
             currentAddress += pos;
-        }
-        #ifdef REX_FLOAT_EXT
-        else if (strcmp(operand, "fldi") == 0) {
+        } else if (strcmp(operand, "fldi") == 0) {
             incAddr(LOAD_IMM_FLOAT);
         } else if (strcmp(operand, "fst") == 0) {
             incAddr(STORE_FLOAT);
@@ -254,8 +258,6 @@ void bin_parseLabels(string data, uint32_t size) {
             incAddr(FMUL);
         } else if (strcmp(operand, "fdiv") == 0) {
             incAddr(FDIV);
-        } else if (strcmp(operand, "fmod") == 0) {
-            incAddr(FREM);
         } else if (strcmp(operand, "fneg") == 0) {
             incAddr(FNEG);
         } else if (strcmp(operand, "fcmp") == 0) {
@@ -265,33 +267,6 @@ void bin_parseLabels(string data, uint32_t size) {
         } else if (strcmp(operand, "fdec") == 0) {
             incAddr(FDEC);
         }
-        #else
-        else if (strcmp(operand, "fldi") == 0) {
-            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
-        } else if (strcmp(operand, "fst") == 0) {
-            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
-        } else if (strcmp(operand, "fld") == 0) {
-            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
-        } else if (strcmp(operand, "fadd") == 0) {
-            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
-        } else if (strcmp(operand, "fsub") == 0) {
-            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
-        } else if (strcmp(operand, "fmul") == 0) {
-            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
-        } else if (strcmp(operand, "fdiv") == 0) {
-            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
-        } else if (strcmp(operand, "fmod") == 0) {
-            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
-        } else if (strcmp(operand, "fneg") == 0) {
-            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
-        } else if (strcmp(operand, "fcmp") == 0) {
-            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
-        } else if (strcmp(operand, "finc") == 0) {
-            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
-        } else if (strcmp(operand, "fdec") == 0) {
-            error("Floating Point operations are not supported in this build! (Problematic Instruction: %s)", operand);
-        }
-        #endif
         operand = strtok(NULL, " ");
     }
 }

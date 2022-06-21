@@ -3,14 +3,14 @@
 
 #include <stdint.h>
 
-#define FLAG_ZERO               0b00000001
-#define FLAG_NEG                0b00000010
-#define FLAG_EQUAL              0b00000100
-#define FLAG_LESS               0b00001000
-#define FLAG_GREATER            0b00010000
-#define FLAG_UNUSED_1           0b00100000
-#define FLAG_UNUSED_2           0b01000000
-#define FLAG_UNUSED_3           0b10000000
+#define FLAG_ZERO               0x01
+#define FLAG_NEG                0x02
+#define FLAG_EQUAL              0x04
+#define FLAG_LESS               0x08
+#define FLAG_GREATER            0x10
+#define FLAG_UNUSED_1           0x20
+#define FLAG_UNUSED_2           0x40
+#define FLAG_UNUSED_3           0x80
 
 uint32_t r0 = 0;
 uint32_t r1 = 0;

@@ -1,17 +1,11 @@
 .here _main
     ldi r0 $message
-    jsr $print
+    ldi r15 3
+    syscall
 
     ldi r15 1
     ldi r0 0
     syscall
-
-.here print
-    psh r15
-    ldi r15 3
-    syscall
-    pop r15
-    rts
 
 .here message
     .asciiz "Hello, World!\n"

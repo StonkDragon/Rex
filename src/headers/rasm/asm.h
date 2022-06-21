@@ -5,7 +5,7 @@
 
 #define  regIdentifier(reg) atoi(reg + 1)
 
-uint8_t*  asm_data = (uint8_t*) malloc(sizeof(uint8_t) * HEAP_SIZE + HEADER_SIZE);
+uint8_t*  asm_data;
 uint32_t  asm_ptr = 0;
 
 void asm_finalize() {
@@ -24,8 +24,9 @@ void asm_addInstruction(uint8_t inst, uint8_t reg1, uint8_t reg2, uint8_t reg3, 
 }
 
 uint32_t asm_writeData(string buffer, uint32_t size) {
+    asm_data = (uint8_t*) malloc(HEAP_SIZE + HEADER_SIZE);
     string operand = strtok(buffer, " ");
-    for (int i = 0; i < size; i++) {
+    for (uint32_t i = 0; i < size; i++) {
         if (operand == NULL) {
             continue;
         }
@@ -237,7 +238,7 @@ uint32_t asm_writeData(string buffer, uint32_t size) {
 
             asm_addInstruction(IF_NOTNULL, 0, 0, 0, add);
         } else if (strcmp(operand, ".asciiz") == 0) {
-            string str = (string) malloc(sizeof(char) * MAX_STRING_LENGTH);
+            string str = (string) malloc(MAX_STRING_LENGTH);
             str[0] = '\0';
             operand = strtok(NULL, " ");
             if (operand == NULL || strlen(operand) == 0) {
@@ -265,9 +266,9 @@ uint32_t asm_writeData(string buffer, uint32_t size) {
                 operand = strtok(NULL, " ");
             }
             
-            int strLen = strlen(str);
+            size_t strLen = strlen(str);
 
-            for (int i = 0; i < strLen; i++) {
+            for (size_t i = 0; i < strLen; i++) {
                 asm_data[asm_ptr++] = str[i];
             }
 
@@ -287,77 +288,67 @@ uint32_t asm_writeData(string buffer, uint32_t size) {
                 syntax_error("Invalid position: %d\n", pos);
             }
             asm_ptr = pos;
-        }
-        #ifdef REX_FLOAT_EXT
-        else if (strcmp(operand, "fldi") == 0) {
+        } else if (strcmp(operand, "fldi") == 0) {
             string reg = strtok(NULL, " ");
-            checkNull(reg, operand);
-            checkIsRegister(reg, operand);
+            bin_checkNull(reg, operand);
+            bin_checkIsRegister(reg, operand);
             string imm = strtok(NULL, " ");
-            checkNull(imm, operand);
-            float* num = (float*) malloc(sizeof(float));
-            *num = atof(imm);
+            bin_checkNull(imm, operand);
+            float* num = (float*) malloc(4);
+            *num = strtof(imm, NULL);
             int num_int = *(int*)num;
 
-            addInstruction(LOAD_IMM_FLOAT, regIdentifier(reg1), 0, 0, num_int);
+            asm_addInstruction(LOAD_IMM_FLOAT, regIdentifier(reg), 0, 0, num_int);
         } else if (strcmp(operand, "fst") == 0) {
-            string reg = strtok(NULL, " ");
-            checkNull(reg, operand);
-            checkIsRegister(reg, operand);
             string address = strtok(NULL, " ");
-            checkNull(address, operand);
-            float* num = atof(address);
-            int num_int = *(int*)num;
+            bin_checkNull(address, operand);
+            string reg = strtok(NULL, " ");
+            bin_checkNull(reg, operand);
+            bin_checkIsRegister(reg, operand);
+            int num = atoi(address);
             
-            addInstruction(STORE_FLOAT, regIdentifier(reg1), 0, 0, num_int);
+            asm_addInstruction(STORE_FLOAT, regIdentifier(reg), 0, 0, num);
         } else if (strcmp(operand, "fld") == 0) {
             string reg = strtok(NULL, " ");
-            checkNull(reg, operand);
-            checkIsRegister(reg, operand);
+            bin_checkNull(reg, operand);
+            bin_checkIsRegister(reg, operand);
             string address = strtok(NULL, " ");
-            checkNull(address, operand);
-            float* num = atof(address);
-            int num_int = *(int*)num;
+            bin_checkNull(address, operand);
+            int num = atoi(address);
 
-            addInstruction(LOAD_FLOAT, regIdentifier(reg1), 0, 0, num_int);
+            asm_addInstruction(LOAD_FLOAT, regIdentifier(reg), 0, 0, num);
         } else if (strcmp(operand, "fadd") == 0) {
             string reg1 = strtok(NULL, " ");
-            checkNull(reg1, operand);
+            bin_checkNull(reg1, operand);
 
-            addInstruction(FADD, regIdentifier(reg1), 0, 0, 0);
+            asm_addInstruction(FADD, regIdentifier(reg1), 0, 0, 0);
         } else if (strcmp(operand, "fsub") == 0) {
             string reg1 = strtok(NULL, " ");
-            checkNull(reg1, operand);
+            bin_checkNull(reg1, operand);
             
-            addInstruction(FSUB, regIdentifier(reg1), 0, 0, 0);
+            asm_addInstruction(FSUB, regIdentifier(reg1), 0, 0, 0);
         } else if (strcmp(operand, "fmul") == 0) {
             string reg1 = strtok(NULL, " ");
-            checkNull(reg1, operand);
+            bin_checkNull(reg1, operand);
             
-            addInstruction(FMUL, regIdentifier(reg1), 0, 0, 0);
+            asm_addInstruction(FMUL, regIdentifier(reg1), 0, 0, 0);
         } else if (strcmp(operand, "fdiv") == 0) {
             string reg1 = strtok(NULL, " ");
-            checkNull(reg1, operand);
+            bin_checkNull(reg1, operand);
             
-            addInstruction(FDIV, regIdentifier(reg1), 0, 0, 0);
-        } else if (strcmp(operand, "fmod") == 0) {
-            string reg1 = strtok(NULL, " ");
-            checkNull(reg1, operand);
-            
-            addInstruction(FREM, regIdentifier(reg1), 0, 0, 0);
+            asm_addInstruction(FDIV, regIdentifier(reg1), 0, 0, 0);
         } else if (strcmp(operand, "fneg") == 0) {
-            addInstruction(FNEG, 0, 0, 0, 0);
+            asm_addInstruction(FNEG, 0, 0, 0, 0);
         } else if (strcmp(operand, "fcmp") == 0) {
             string reg1 = strtok(NULL, " ");
-            checkNull(reg1, operand);
+            bin_checkNull(reg1, operand);
             
-            addInstruction(FCMP, regIdentifier(reg1), 0, 0, 0);
+            asm_addInstruction(FCMP, regIdentifier(reg1), 0, 0, 0);
         } else if (strcmp(operand, "finc") == 0) {
-            addInstruction(FINC, 0, 0, 0, 0);
+            asm_addInstruction(FINC, 0, 0, 0, 0);
         } else if (strcmp(operand, "fdec") == 0) {
-            addInstruction(FDEC, 0, 0, 0, 0);
+            asm_addInstruction(FDEC, 0, 0, 0, 0);
         }
-        #endif
         operand = strtok(NULL, " ");
     }
 

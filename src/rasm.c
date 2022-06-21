@@ -40,8 +40,8 @@ int main(int argc, string argv[]) {
     fclose(file);
 
     string token = strtok(file_buffer, " \n");
-    string token_buffer = (string) malloc(sizeof(char) * size);
-    string buffer = (string) malloc(sizeof(char) * size);
+    string token_buffer = (string) malloc(size);
+    string buffer = (string) malloc(size);
     int i = 0;
     while (token != NULL) {
         if (strlen(token) > 0) {
@@ -53,11 +53,13 @@ int main(int argc, string argv[]) {
     }
     strcpy(buffer, token_buffer);
 
+    labels = (rasm_label_t*) malloc(sizeof(rasm_label_t) * STACK_SIZE);
+
     bin_parseLabels(token_buffer, size);
 
     asm_writeData(buffer, size);
 
-    uint8_t* code = (uint8_t*) malloc(sizeof(uint8_t) * asm_ptr + HEADER_SIZE);
+    uint8_t* code = (uint8_t*) malloc(asm_ptr + HEADER_SIZE);
     
     code[0] = FILE_IDENTIFIER & 0xFF;
     code[1] = (FILE_IDENTIFIER >> 8) & 0xFF;
@@ -70,7 +72,9 @@ int main(int argc, string argv[]) {
     code[6] = (crc >> 16) & 0xFF;
     code[7] = (crc >> 24) & 0xFF;
     
-    uint32_t entryPoint = bin_getAddressOfLabel("_main");
+    string entryPointLabel = bin_getEntryPointLabel();
+
+    uint32_t entryPoint = bin_getAddressOfLabel(entryPointLabel);
     code[8] = entryPoint & 0xFF;
     code[9] = (entryPoint >> 8) & 0xFF;
     code[10] = (entryPoint >> 16) & 0xFF;
@@ -81,7 +85,7 @@ int main(int argc, string argv[]) {
     code[14] = (REX_COMPILER_VER >> 16) & 0xFF;
     code[15] = (REX_COMPILER_VER >> 24) & 0xFF;
     
-    for (int i = 0; i < (asm_ptr + HEADER_SIZE); i++) {
+    for (size_t i = 0; i < (asm_ptr + HEADER_SIZE); i++) {
         code[i + HEADER_SIZE] = asm_data[i];
     }
 
@@ -90,16 +94,16 @@ int main(int argc, string argv[]) {
         native_error("Could not open file %s\n", outFile);
     }
 
-    for (int i = 0; i < (asm_ptr + HEADER_SIZE); i++) {
+    for (size_t i = 0; i < (asm_ptr + HEADER_SIZE); i++) {
         fprintf(out, "%c", code[i]);
     }
     
     #ifdef DEBUG
-    string debug = (string) malloc(sizeof(char) * strlen(outFile) + 5);
+    string debug = (string) malloc(strlen(outFile) + 5);
     strcpy(debug, outFile);
     strcat(debug, ".dsym");
     FILE* dsym = fopen(debug, "w");
-    for (int i = 0; i < labelCount; i++) {
+    for (size_t i = 0; i < labelCount; i++) {
         fprintf(dsym, "%08x:%s\n", labels[i].address, labels[i].label);
     }
     fclose(dsym);

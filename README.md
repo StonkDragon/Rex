@@ -1,4 +1,4 @@
-# Rex Bytecode Instruction Set (Version `RBIA-6`)
+# Rex Bytecode Instruction Set (Version `RBIA-7`)
 ## Instruction Layout
 Each instruction is has a fixed length of `8` bytes.
 
@@ -55,6 +55,17 @@ Instruction Arguments can be:
 | `0x37` | `ret` | `RET` | Returns from the current Function |
 | `0x38` | `jz` | `IF_NULL` | Jumps to `addr` if r0 is 0 |
 | `0x39` | `jnz` | `IF_NOT_NULL` | Jumps to `addr` if r0 is not 0 |
+| `0x80` | `fldi` | `LOAD_IMM_FLOAT` | Load the floating point `imm` into `reg0` |
+| `0x81` | `fst` | `STORE_FLOAT` | Store the floating point value in `reg0` at `addr` |
+| `0x82` | `fld` | `LOAD_FLOAT` | Load the floating point value at `addr` into `reg0` |
+| `0x83` | `fadd` | `FADD` | Add the floating point value in `reg0` to f0 |
+| `0x84` | `fsub` | `FSUB` | Subtract the floating point value in `reg0` from f0 |
+| `0x85` | `fmul` | `FMUL` | Multiply the floating point value in `reg0` with f0 |
+| `0x86` | `fdiv` | `FDIV` | Divide the floating point value in `reg0` by f0 |
+| `0x87` | `fneg` | `FNEG` | Negate the floating point value in f0 |
+| `0x88` | `fcmp` | `FCMP` | Compare the floating point value in f0 and `reg0` |
+| `0x89` | `finc` | `FINC` | Increment the floating point value in f0 by 1.0 |
+| `0x8A` | `fdec` | `FDEC` | Decrement the floating point value in f0 by 1.0 |
 
 ## File Header
 The File Header has a length of `16` bytes.

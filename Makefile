@@ -1,26 +1,30 @@
-runtime:
-		gcc -o bin/rex src/rex.cpp
-
-runtime-debug:
-		gcc -o bin/rex-debug src/rex.cpp -DDEBUG
-
-compiler:
-		gcc -o bin/rasm src/rasm.cpp
-
-compiler-debug:
-		gcc -o bin/rasm-debug src/rasm.cpp -DDEBUG
+CC=clang
+CFLAGS=-Wall -Wextra -std=gnu18 -Wgnu-binary-literal -pedantic -ggdb -O2
 
 all:
-		gcc -o bin/rasm src/rasm.cpp
-		gcc -o bin/rex src/rex.cpp
+		mkdir -p bin
+		$(CC) $(CFLAGS) -o bin/rasm src/rasm.c
+		$(CC) $(CFLAGS) -o bin/rex src/rex.c
+
+runtime:
+		$(CC) $(CFLAGS) -o bin/rex src/rex.c
+
+runtime-debug:
+		$(CC) $(CFLAGS) -o bin/rex-debug src/rex.c -DDEBUG
+
+compiler:
+		$(CC) $(CFLAGS) -o bin/rasm src/rasm.c
+
+compiler-debug:
+		$(CC) $(CFLAGS) -o bin/rasm-debug src/rasm.c -DDEBUG
 
 all-debug:
-		gcc -o bin/rex-debug src/rex.cpp -DDEBUG
-		gcc -o bin/rasm-debug src/rasm.cpp -DDEBUG
+		$(CC) $(CFLAGS) -o bin/rex-debug src/rex.c -DDEBUG
+		$(CC) $(CFLAGS) -o bin/rasm-debug src/rasm.c -DDEBUG
 
 hello-example:
-		gcc -o bin/rex-debug src/rex.cpp -DDEBUG
-		gcc -o bin/rasm-debug src/rasm.cpp -DDEBUG
+		$(CC) $(CFLAGS) -o bin/rex-debug src/rex.c -DDEBUG
+		$(CC) $(CFLAGS) -o bin/rasm-debug src/rasm.c -DDEBUG
 		clear
 
 		./bin/rasm-debug tests/hello.rasm

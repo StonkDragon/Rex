@@ -7,6 +7,7 @@
 #include "cstring.h"
 #include "error.h"
 #include "register.h"
+#include "fpengine.h"
 
 #define ERR_HEAP           4
 #define ERR_STACK          9
@@ -59,8 +60,8 @@ void me_heapDump(const string dumpFile) {
 
     uint32_t zeroes = 0;
 
-    for (int i = 0; i < HEAP_SIZE - 1; i+=16) {
-        for (int j = 0; j < 16; j++) {
+    for (size_t i = 0; i < HEAP_SIZE - 1; i+=16) {
+        for (size_t j = 0; j < 16; j++) {
             if (me_readByte(i+j) == 0) {
                 zeroes++;
             } else {
@@ -68,12 +69,12 @@ void me_heapDump(const string dumpFile) {
             }
         }
         if (zeroes <= 16) {
-            fprintf(f, "  0x%08x: ", i);
-            for (int j = 0; j < 16; j++) {
+            fprintf(f, "  0x%08zx: ", i);
+            for (size_t j = 0; j < 16; j++) {
                 fprintf(f, "%02x ", me_readByte(i+j));
             }
             fprintf(f, " ");
-            for (int j = 0; j < 16; j++) {
+            for (size_t j = 0; j < 16; j++) {
                 fprintf(f, "%c ", isprint(me_readByte(i+j)) ? me_readByte(i+j) : '.');
             }
             fprintf(f, "\n");
@@ -85,8 +86,8 @@ void me_heapDump(const string dumpFile) {
     fprintf(f, "\n");
     fprintf(f, "Stack:\n");
     if (sp > 0) {
-        for (int i = 0; i < sp; i++) {
-            fprintf(f, "  0x%04x: 0x%08x", i, stack[i]);
+        for (size_t i = 0; i < sp; i++) {
+            fprintf(f, "  0x%04zx: 0x%08x", i, stack[i]);
             fprintf(f, "\n");
         }
     } else {
@@ -114,30 +115,41 @@ void me_heapDump(const string dumpFile) {
     fprintf(f, "  ip:     %u\n", ip);
     fprintf(f, "  sp:     %u\n", sp);
     fprintf(f, "  rFlags: " binaryPattern "\n", byteToBinary(rFlags));
-    
+    fprintf(f, "\n");
+
+    fprintf(f, "Floating Point Registers:\n");
+    fprintf(f, "  f0:     %f (0x%08x)\n", f0, *(int*) &f0);
+    fprintf(f, "  f1:     %f (0x%08x)\n", f1, *(int*) &f1);
+    fprintf(f, "  f2:     %f (0x%08x)\n", f2, *(int*) &f2);
+    fprintf(f, "  f3:     %f (0x%08x)\n", f3, *(int*) &f3);
+    fprintf(f, "  f4:     %f (0x%08x)\n", f4, *(int*) &f4);
+    fprintf(f, "  f5:     %f (0x%08x)\n", f5, *(int*) &f5);
+    fprintf(f, "  f6:     %f (0x%08x)\n", f6, *(int*) &f6);
+    fprintf(f, "  f7:     %f (0x%08x)\n", f7, *(int*) &f7);
+
     fprintf(f, "\n");
     fprintf(f, "Physical Locations:\n");
-    fprintf(f, "  Heap:   0x%p\n", heap);
-    fprintf(f, "  Stack:  0x%p\n", stack);
-    fprintf(f, "  r0:     0x%p\n", &r0);
-    fprintf(f, "  r1:     0x%p\n", &r1);
-    fprintf(f, "  r2:     0x%p\n", &r2);
-    fprintf(f, "  r3:     0x%p\n", &r3);
-    fprintf(f, "  r4:     0x%p\n", &r4);
-    fprintf(f, "  r5:     0x%p\n", &r5);
-    fprintf(f, "  r6:     0x%p\n", &r6);
-    fprintf(f, "  r7:     0x%p\n", &r7);
-    fprintf(f, "  r8:     0x%p\n", &r8);
-    fprintf(f, "  r9:     0x%p\n", &r9);
-    fprintf(f, "  r10:    0x%p\n", &r10);
-    fprintf(f, "  r11:    0x%p\n", &r11);
-    fprintf(f, "  r12:    0x%p\n", &r12);
-    fprintf(f, "  r13:    0x%p\n", &r13);
-    fprintf(f, "  r14:    0x%p\n", &r14);
-    fprintf(f, "  r15:    0x%p\n", &r15);
-    fprintf(f, "  IP:     0x%p\n", &ip);
-    fprintf(f, "  SP:     0x%p\n", &sp);
-    fprintf(f, "  RFLAGS: 0x%p\n", &rFlags);
+    fprintf(f, "  Heap:   0x%p\n", (void*) heap);
+    fprintf(f, "  Stack:  0x%p\n", (void*) stack);
+    fprintf(f, "  r0:     0x%p\n", (void*) &r0);
+    fprintf(f, "  r1:     0x%p\n", (void*) &r1);
+    fprintf(f, "  r2:     0x%p\n", (void*) &r2);
+    fprintf(f, "  r3:     0x%p\n", (void*) &r3);
+    fprintf(f, "  r4:     0x%p\n", (void*) &r4);
+    fprintf(f, "  r5:     0x%p\n", (void*) &r5);
+    fprintf(f, "  r6:     0x%p\n", (void*) &r6);
+    fprintf(f, "  r7:     0x%p\n", (void*) &r7);
+    fprintf(f, "  r8:     0x%p\n", (void*) &r8);
+    fprintf(f, "  r9:     0x%p\n", (void*) &r9);
+    fprintf(f, "  r10:    0x%p\n", (void*) &r10);
+    fprintf(f, "  r11:    0x%p\n", (void*) &r11);
+    fprintf(f, "  r12:    0x%p\n", (void*) &r12);
+    fprintf(f, "  r13:    0x%p\n", (void*) &r13);
+    fprintf(f, "  r14:    0x%p\n", (void*) &r14);
+    fprintf(f, "  r15:    0x%p\n", (void*) &r15);
+    fprintf(f, "  IP:     0x%p\n", (void*) &ip);
+    fprintf(f, "  SP:     0x%p\n", (void*) &sp);
+    fprintf(f, "  RFLAGS: 0x%p\n", (void*) &rFlags);
 
     fclose(f);
     printf("Created Memory Dump as \"%s\"\n", dumpFile);
@@ -163,13 +175,13 @@ void me_writeShort(uint32_t addr, uint16_t value) {
 }
 
 void me_writeString(uint32_t addr, string value) {
-    for (int i = 0; i < strlen(value); i++) {
+    for (size_t i = 0; i < strlen(value); i++) {
         me_writeByte(addr+i, value[i]);
     }
 }
 
 void me_writeFloat(uint32_t addr, float value) {
-    me_writeInt(addr, *(uint32_t*)&value);
+    me_writeInt(addr, *(uint32_t*) &value);
 }
 
 void me_writeLong(uint32_t addr, uint64_t value) {
@@ -178,7 +190,7 @@ void me_writeLong(uint32_t addr, uint64_t value) {
 }
 
 void me_writeDouble(uint32_t addr, double value) {
-    me_writeLong(addr, *(uint64_t*)&value);
+    me_writeLong(addr, *(uint64_t*) &value);
 }
 
 int me_readInt(uint32_t addr) {
@@ -197,8 +209,8 @@ uint8_t me_readByte(uint32_t addr) {
 }
 
 string me_readString(uint32_t addr) {
-    string str = (string)malloc(sizeof(char) * HEAP_SIZE);
-    for (int i = 0; i < HEAP_SIZE - addr; i++) {
+    string str = (string)malloc(HEAP_SIZE);
+    for (size_t i = 0; i < HEAP_SIZE - addr; i++) {
         str[i] = heap[addr+i];
         if (str[i] == 0) {
             break;
@@ -208,7 +220,9 @@ string me_readString(uint32_t addr) {
 }
 
 float me_readFloat(uint32_t addr) {
-    return *(float*)me_readInt(addr);
+    int* i = (int*) malloc(4);
+    *i = me_readInt(addr);
+    return *(float*) i;
 }
 
 uint64_t me_readLong(uint32_t addr) {
@@ -216,7 +230,9 @@ uint64_t me_readLong(uint32_t addr) {
 }
 
 double me_readDouble(uint32_t addr) {
-    return *(double*)me_readLong(addr);
+    long* i = (long*) malloc(8);
+    *i = me_readLong(addr);
+    return *(double*) i;
 }
 
 #endif
