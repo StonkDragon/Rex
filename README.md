@@ -85,6 +85,12 @@ The Program is copied into Memory starting at Address 0. All other Memory is ini
 
 The Default Memory Size is 16777216 (`0x1000000`) Bytes.
 
+## Registers
+
+There are 16 General Purpose 32-Bit Registers (`r0` - `r15`).
+
+Furthermore, there are 8 32-Bit Floating Point Registers (`f0` - `f7`).
+
 ## System Calls
 
 | ID | C-Macro (Defined in `rexcall.h`) | Description |
