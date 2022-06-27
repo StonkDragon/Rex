@@ -1,6 +1,6 @@
 # Rex Bytecode Instruction Set (Version `RBIA-8`)
 ## Instruction Layout
-Each instruction is has a fixed length of `2` or `10` bytes.
+Each instruction has a fixed length either of `2` or `10` bytes.
 
 Layout:
 
