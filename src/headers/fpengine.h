@@ -3,16 +3,16 @@
 
 #include "register.h"
 
-float f0 = 0.0f;
-float f1 = 0.0f;
-float f2 = 0.0f;
-float f3 = 0.0f;
-float f4 = 0.0f;
-float f5 = 0.0f;
-float f6 = 0.0f;
-float f7 = 0.0f;
+double f0 = 0.0f;
+double f1 = 0.0f;
+double f2 = 0.0f;
+double f3 = 0.0f;
+double f4 = 0.0f;
+double f5 = 0.0f;
+double f6 = 0.0f;
+double f7 = 0.0f;
 
-float fe_get(int i) {
+double fe_get(int i) {
     switch (i) {
         case 0: return f0;
         case 1: return f1;
@@ -26,7 +26,7 @@ float fe_get(int i) {
     }
 }
 
-void fe_set(int i, float f) {
+void fe_set(int i, double f) {
     switch (i) {
         case 0: f0 = f; break;
         case 1: f1 = f; break;

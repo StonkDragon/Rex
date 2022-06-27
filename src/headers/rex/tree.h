@@ -6,2001 +6,318 @@
 #include "../error.h"
 
 FILE**   openFiles;
-int      filePointer = 0;
-uint32_t bpCounter = 0;
+int      filePointer = 3;
+uint64_t bpCounter = 0;
 
-int parseBinaryTree(uint32_t size, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5, uint8_t b6, uint8_t b7, uint8_t b8)
+int parseBinaryTree(uint64_t size)
 {
-    uint32_t operand = me_readInt(ip);
-    uint8_t reg1 = (operand >> 8) & 0xFF;
-    uint8_t reg2 = (operand >> 16) & 0xFF;
-    uint8_t reg3 = (operand >> 24) & 0xFF;
-    ip += 4;
-    uint32_t addr = me_readInt(ip);
-    ip += 4;
-    
-    stopUnusedWarn(reg3);
-    
-    int returnValue = -1;
+    uint8_t opcode = me_readByte(ip);
+    ip++;
+    uint8_t registers = me_readByte(ip);
+    uint8_t reg1 = (registers >> 4) & 0x0F;
+    uint8_t reg2 = registers & 0x0F;
+    ip++;
 
-    if (b1 > 0)
-    {
-        if (b2 > 0)
-        {
-            if (b3 > 0)
-            {
-                if (b4 > 0)
-                {
-                    if (b5 > 0)
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    #ifdef DEBUG
-                                    printf("Debug: Hit Breakpoint\n");
-                                    string bp = (string)malloc(MAX_STRING_LENGTH);
-                                    sprintf(bp, "bp-%d.dump", ++bpCounter);
-                                    me_heapDump(bp);
-                                    getchar();
-                                    #endif
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
+    int ret = -1;
+
+    uint64_t addr;
+    if ((opcode & 0x80) != 0) {
+        addr = me_readLong(ip);
+        ip += 8;
+
+        switch (opcode) {
+            case GOTO:
+                ip = addr;
+                break;
+
+            case JEQ:
+                if ((rFlags & FLAG_EQUAL) != 0) {
+                    me_push(ip);
+                    ip = addr;
                 }
-                else
-                {
-                    if (b5 > 0)
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
+                break;
+
+            case JNE:
+                if ((rFlags & FLAG_EQUAL) == 0) {
+                    me_push(ip);
+                    ip = addr;
                 }
-            }
-            else
-            {
-                if (b4 > 0)
-                {
-                    if (b5 > 0)
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
+                break;
+
+            case JGT:
+                if ((rFlags & FLAG_GREATER) != 0) {
+                    me_push(ip);
+                    ip = addr;
                 }
-                else
-                {
-                    if (b5 > 0)
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
+                break;
+
+            case JLT:
+                if ((rFlags & FLAG_LESS) != 0) {
+                    me_push(ip);
+                    ip = addr;
                 }
-            }
+                break;
+
+            case JGE:
+                if ((rFlags & FLAG_LESS) == 0) {
+                    me_push(ip);
+                    ip = addr;
+                }
+                break;
+
+            case JLE:
+                if ((rFlags & FLAG_GREATER) == 0) {
+                    me_push(ip);
+                    ip = addr;
+                }
+                break;
+
+            case JMP:
+                me_push(ip);
+                ip = addr;
+                break;
+
+            case JZ:
+                if ((rFlags & FLAG_ZERO) != 0) {
+                    me_push(ip);
+                    ip = addr;
+                }
+                break;
+
+            case JNZ:
+                if ((rFlags & FLAG_ZERO) == 0) {
+                    me_push(ip);
+                    ip = addr;
+                }
+                break;
+
+            case LOAD_IMM_FLOAT:
+                fe_set(reg1, *(double*) &addr);
+                break;
+
+            case STORE_FLOAT:
+                me_writeDouble(addr, fe_get(reg1));
+                break;
+
+            case LOAD_FLOAT:
+                fe_set(reg1, me_readDouble(addr));
+                break;
+
+            case STORE:
+                me_writeLong(addr, re_get(reg1));
+                break;
+
+            case LOAD_IMM:
+                re_set(reg1, addr);
+                break;
+
+            case PUSH_IMM:
+                me_push(addr);
+                break;
+
+            case LOAD:
+                re_set(reg1, me_readLong(addr));
+                break;
+
         }
-        else
-        {
-            if (b3 > 0)
-            {
-                if (b4 > 0)
+    } else {
+        switch (opcode) {
+            case NOP:
+                break;
+
+            case MOVE:
+                re_set(reg1, re_get(reg2));
+                break;
+
+            case PUSH:
+                me_push(re_get(reg1));
+                break;
+
+            case POP:
+                re_set(reg1, me_pop());
+                break;
+
+            case DUP:
                 {
-                    if (b5 > 0)
+                    uint64_t value = me_pop();
+                    me_push(value);
+                    me_push(value);
+                }
+                break;
+
+            case SWAP:
+                {
+                    uint64_t value1 = me_pop();
+                    uint64_t value2 = me_pop();
+                    me_push(value1);
+                    me_push(value2);
+                }
+                break;
+
+            case IADD:
+                r0 += re_get(reg1);
+                break;
+
+            case ISUB:
+                r0 -= re_get(reg1);
+                break;
+
+            case IMUL:
+                r0 *= re_get(reg1);
+                break;
+
+            case IDIV:
+                r0 /= re_get(reg1);
+                break;
+
+            case IREM:
+                r0 %= re_get(reg1);
+                break;
+
+            case IAND:
+                r0 &= re_get(reg1);
+                break;
+
+            case IOR:
+                r0 |= re_get(reg1);
+                break;
+
+            case IXOR:
+                r0 ^= re_get(reg1);
+                break;
+
+            case ISHL:
+                r0 <<= re_get(reg1);
+                break;
+
+            case ISHR:
+                r0 >>= re_get(reg1);
+                break;
+
+            case INOT:
+                r0 = ~r0;
+                break;
+
+            case IINC:
+                r0++;
+                break;
+
+            case IDEC:
+                r0--;
+                break;
+
+            case CMP:
+                {
+                    // FCMP
+                    double value = re_get(reg1);
+                    if (r0 == value)
                     {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
+                        rFlags = rFlags | FLAG_EQUAL;
+                        rFlags = rFlags & ~FLAG_LESS;
+                        rFlags = rFlags & ~FLAG_GREATER;
+                    }
+                    else if (r0 < value)
+                    {
+                        rFlags = rFlags | FLAG_LESS;
+                        rFlags = rFlags & ~FLAG_EQUAL;
+                        rFlags = rFlags & ~FLAG_GREATER;
                     }
                     else
                     {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
+                        rFlags = rFlags | FLAG_GREATER;
+                        rFlags = rFlags & ~FLAG_EQUAL;
+                        rFlags = rFlags & ~FLAG_LESS;
                     }
-                }
-                else
-                {
-                    if (b5 > 0)
+                    if (r0 == 0)
                     {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
+                        rFlags = rFlags | FLAG_ZERO;
                     }
                     else
                     {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
+                        rFlags = rFlags & ~FLAG_ZERO;
                     }
                 }
-            }
-            else
-            {
-                if (b4 > 0)
+                break;
+
+            case SYSTEM:
+                ret = execSyscall(size, openFiles, &filePointer);
+                break;
+
+            case RETURN:
+                ip = me_pop();
+                break;
+
+            case FADD:
+                f0 += fe_get(reg1);
+                break;
+
+            case FSUB:
+                f0 -= fe_get(reg1);
+                break;
+
+            case FMUL:
+                f0 *= fe_get(reg1);
+                break;
+
+            case FDIV:
+                f0 /= fe_get(reg1);
+                break;
+
+            case FNEG:
+                f0 = -f0;
+                break;
+
+            case FCMP:
                 {
-                    if (b5 > 0)
+                    double value = fe_get(reg1);
+                    if (f0 == value)
                     {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
+                        rFlags = rFlags | FLAG_EQUAL;
+                        rFlags = rFlags & ~FLAG_LESS;
+                        rFlags = rFlags & ~FLAG_GREATER;
+                    }
+                    else if (f0 < value)
+                    {
+                        rFlags = rFlags | FLAG_LESS;
+                        rFlags = rFlags & ~FLAG_EQUAL;
+                        rFlags = rFlags & ~FLAG_GREATER;
                     }
                     else
                     {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
+                        rFlags = rFlags | FLAG_GREATER;
+                        rFlags = rFlags & ~FLAG_EQUAL;
+                        rFlags = rFlags & ~FLAG_LESS;
                     }
-                }
-                else
-                {
-                    if (b5 > 0)
+                    if (f0 == 0.0)
                     {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // FDEC
-                                    f0--;
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    // FINC
-                                    f0++;
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // FCMP
-                                    float value = fe_get(reg1);
-                                    if (f0 == value)
-                                    {
-                                        rFlags = rFlags | FLAG_EQUAL;
-                                        rFlags = rFlags & ~FLAG_LESS;
-                                        rFlags = rFlags & ~FLAG_GREATER;
-                                    }
-                                    else if (f0 < value)
-                                    {
-                                        rFlags = rFlags | FLAG_LESS;
-                                        rFlags = rFlags & ~FLAG_EQUAL;
-                                        rFlags = rFlags & ~FLAG_GREATER;
-                                    }
-                                    else
-                                    {
-                                        rFlags = rFlags | FLAG_GREATER;
-                                        rFlags = rFlags & ~FLAG_EQUAL;
-                                        rFlags = rFlags & ~FLAG_LESS;
-                                    }
-                                    if (f0 == 0.0)
-                                    {
-                                        rFlags = rFlags | FLAG_ZERO;
-                                    }
-                                    else
-                                    {
-                                        rFlags = rFlags & ~FLAG_ZERO;
-                                    }
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
+                        rFlags = rFlags | FLAG_ZERO;
                     }
                     else
                     {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {// FNEG
-                                    f0 = -f0;
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // FDIV
-                                    f0 /= fe_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    // FMUL
-                                    f0 *= fe_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // FSUB
-                                    f0 -= fe_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    // FADD
-                                    f0 += fe_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // LOAD_FLOAT
-                                    fe_set(reg1, me_readFloat(addr));
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    // STORE_FLOAT
-                                    me_writeFloat(addr, fe_get(reg1));
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // LOAD_IMM_FLOAT
-                                    float* f = (float*) malloc(4);
-                                    *f = *(float*) &addr;
-                                    fe_set(reg1, *f);
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
+                        rFlags = rFlags & ~FLAG_ZERO;
                     }
                 }
-            }
+                break;
+
+            case FINC:
+                f0++;
+                break;
+
+            case FDEC:
+                f0--;
+                break;
+
+            case F2I:
+                re_set(reg1, (int64_t) fe_get(reg2));
+                break;
+
+            case I2F:
+                fe_set(reg1, (double) re_get(reg2));
+                break;
+
         }
     }
-    else
-    {
-        if (b2 > 0)
-        {
-            if (b3 > 0)
-            {
-                if (b4 > 0)
-                {
-                    if (b5 > 0)
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (b5 > 0)
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (b4 > 0)
-                {
-                    if (b5 > 0)
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (b5 > 0)
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            if (b3 > 0)
-            {
-                if (b4 > 0)
-                {
-                    if (b5 > 0)
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    if (r0 > 0)
-                                    {
-                                        me_push(ip);
-                                        ip = addr;
-                                    }
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    if (r0 == 0)
-                                    {
-                                        me_push(ip);
-                                        ip = addr;
-                                    }
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    ip = me_pop();
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    me_push(ip);
-                                    ip = addr;
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    returnValue = execSyscall(size, openFiles, &filePointer);
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    if ((rFlags & FLAG_LESS) == 0)
-                                    {
-                                        me_push(ip);
-                                        ip = addr;
-                                    }
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    if ((rFlags & FLAG_GREATER) == 0)
-                                    {
-                                        me_push(ip);
-                                        ip = addr;
-                                    }
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    if ((rFlags & FLAG_GREATER))
-                                    {
-                                        me_push(ip);
-                                        ip = addr;
-                                    }
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    if ((rFlags & FLAG_LESS))
-                                    {
-                                        me_push(ip);
-                                        ip = addr;
-                                    }
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    if ((rFlags & FLAG_EQUAL) == 0)
-                                    {
-                                        me_push(ip);
-                                        ip = addr;
-                                    }
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (b5 > 0)
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    if ((rFlags & FLAG_EQUAL))
-                                    {
-                                        me_push(ip);
-                                        ip = addr;
-                                    }
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    ip = addr;
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    uint32_t value = re_get(reg1);
-                                    if (r0 == value)
-                                    {
-                                        rFlags = rFlags | FLAG_EQUAL;
-                                        rFlags = rFlags & ~FLAG_LESS;
-                                        rFlags = rFlags & ~FLAG_GREATER;
-                                    }
-                                    else if (r0 < value)
-                                    {
-                                        rFlags = rFlags | FLAG_LESS;
-                                        rFlags = rFlags & ~FLAG_EQUAL;
-                                        rFlags = rFlags & ~FLAG_GREATER;
-                                    }
-                                    else
-                                    {
-                                        rFlags = rFlags | FLAG_GREATER;
-                                        rFlags = rFlags & ~FLAG_EQUAL;
-                                        rFlags = rFlags & ~FLAG_LESS;
-                                    }
-                                    if (r0 == 0)
-                                    {
-                                        rFlags = rFlags | FLAG_ZERO;
-                                    }
-                                    else
-                                    {
-                                        rFlags = rFlags & ~FLAG_ZERO;
-                                    }
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    r0--;
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    r0++;
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    r0 = ~r0;
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    r0 >>= re_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    r0 <<= re_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    r0 ^= re_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    r0 |= re_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    r0 &= re_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    r0 = -r0;
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    r0 %= re_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    r0 /= re_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    r0 *= re_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    r0 -= re_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (b4 > 0)
-                {
-                    if (b5 > 0)
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    r0 += re_get(reg1);
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    uint32_t a = me_pop();
-                                    uint32_t b = me_pop();
-                                    me_push(a);
-                                    me_push(b);
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    r15 = me_pop();
-                                    me_push(r15);
-                                    me_push(r15);
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    re_set(reg1, me_pop());
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    // 0b00011011
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // 0b00011010
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    // 0b00011001
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // 0b00011000
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    // 0b00010111
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // 0b00010110
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    // 0b00010101
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // 0b00010100
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    // 0b00010011
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // 0b00010010
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    // 0b00010001
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // 0b00010000
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (b5 > 0)
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    // 0b00001111
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // 0b00001110
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    // 0b00001101
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // 0b00001100
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    // 0b00001011
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // 0b00001010
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    // 0b00001001
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // 0b00001000
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (b6 > 0)
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-                                    // 0b00000111
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    me_push(addr);
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    re_set(reg1, heapAddress);
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    re_set(reg1, addr);
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (b7 > 0)
-                            {
-                                if (b8 > 0)
-                                {
-
-                                    if (addr > HEAP_MAX || addr < 0)
-                                    {
-                                        heap_error("Attempted to write outside of memory space (Address: %02x)\n", addr);
-                                        me_heapDump("memory.dump");
-                                    }
-                                    if (addr <= size)
-                                    {
-                                        heap_error("Attempted to write to reserved memory space (Address: %02x)\n", addr);
-                                        me_heapDump("memory.dump");
-                                    }
-                                    uint32_t value = re_get(reg1);
-                                    me_writeInt(addr, value);
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    me_push(re_get(reg1));
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                            else
-                            {
-                                if (b8 > 0)
-                                {
-                                    re_set(reg1, re_get(reg2));
-                                    goto binaryTreeEnd;
-                                }
-                                else
-                                {
-                                    // NOP
-                                    goto binaryTreeEnd;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-binaryTreeEnd:
-    return returnValue;
+    return ret;
 }
 
 #endif

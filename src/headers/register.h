@@ -12,28 +12,28 @@
 #define FLAG_UNUSED_2           0x40
 #define FLAG_UNUSED_3           0x80
 
-uint32_t r0 = 0;
-uint32_t r1 = 0;
-uint32_t r2 = 0;
-uint32_t r3 = 0;
-uint32_t r4 = 0;
-uint32_t r5 = 0;
-uint32_t r6 = 0;
-uint32_t r7 = 0;
-uint32_t r8 = 0;
-uint32_t r9 = 0;
-uint32_t r10 = 0;
-uint32_t r11 = 0;
-uint32_t r12 = 0;
-uint32_t r13 = 0;
-uint32_t r14 = 0;
-uint32_t r15 = 0;
-uint32_t ip = 0;
-uint32_t sp = 0;
-uint32_t rFlags = 0;
-uint32_t addr = 0;
+uint64_t r0 = 0;
+uint64_t r1 = 0;
+uint64_t r2 = 0;
+uint64_t r3 = 0;
+uint64_t r4 = 0;
+uint64_t r5 = 0;
+uint64_t r6 = 0;
+uint64_t r7 = 0;
+uint64_t r8 = 0;
+uint64_t r9 = 0;
+uint64_t r10 = 0;
+uint64_t r11 = 0;
+uint64_t r12 = 0;
+uint64_t r13 = 0;
+uint64_t r14 = 0;
+uint64_t r15 = 0;
+uint64_t ip = 0;
+uint64_t sp = 0;
+uint64_t rFlags = 0;
+uint64_t addr = 0;
 
-void re_set(uint8_t reg, uint32_t val) {
+void re_set(uint8_t reg, uint64_t val) {
     switch (reg) {
         case 0: r0 = val; break;
         case 1: r1 = val; break;
@@ -54,7 +54,7 @@ void re_set(uint8_t reg, uint32_t val) {
     }
 }
 
-uint32_t re_get(uint8_t reg) {
+uint64_t re_get(uint8_t reg) {
     switch (reg) {
         case 0: return r0;
         case 1: return r1;

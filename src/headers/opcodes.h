@@ -1,18 +1,15 @@
 #ifndef REX_OPCODES_H
 #define REX_OPCODES_H
 
-#define REX_COMPILER_VER 6
+#define REX_COMPILER_VER 8
 #define HEADER_SIZE      16
 #define FILE_IDENTIFIER  0xCEBACEBA
 
-// Memory Management
+// 2-byte instructions
 #define NOP              0x00
 #define MOVE             0x01
 #define PUSH             0x02
-#define STORE            0x03
-#define LOAD_IMM         0x04
-#define LOAD             0x05
-#define PUSHI            0x06
+#define FREE             0x03
 
 // Stack Manipulation
 #define POP              0x1C
@@ -35,34 +32,44 @@
 #define IINC             0x2B
 #define IDEC             0x2C
 
-// Jumps, Loops and Syscall
 #define CMP              0x2D
-#define GOTO             0x2E
-#define IF_EQ            0x2F
-#define IF_NE            0x30
-#define IF_LT            0x31
-#define IF_GT            0x32
-#define IF_LE            0x33
-#define IF_GE            0x34
 #define SYSTEM           0x35
-#define IF_TRUE          0x36
 #define RETURN           0x37
-#define IF_NULL          0x38
-#define IF_NOTNULL       0x39
 
 // Floating Point Arithmetic
-#define LOAD_IMM_FLOAT   0x80
-#define STORE_FLOAT      0x81
-#define LOAD_FLOAT       0x82
-#define FADD             0x83
-#define FSUB             0x84
-#define FMUL             0x85
-#define FDIV             0x86
-#define FNEG             0x87
-#define FCMP             0x88
-#define FINC             0x89
-#define FDEC             0x8A
+#define FADD             0x3D
+#define FSUB             0x3E
+#define FMUL             0x3F
+#define FDIV             0x40
+#define FNEG             0x41
+#define FCMP             0x42
+#define FINC             0x43
+#define FDEC             0x44
+#define F2I              0x45
+#define I2F              0x46
 
-#define BREAKPOINT       0xFF
+// 10-byte instructions
+#define GOTO             0xAE
+#define JEQ              0xAF
+#define JNE              0xB0
+#define JLT              0xB1
+#define JGT              0xB2
+#define JLE              0xB3
+#define JGE              0xB4
+#define JMP              0xB6
+#define JZ               0xB8
+#define JNZ              0xB9
+#define LOAD_IMM_FLOAT   0xBA
+#define STORE_FLOAT      0xBB
+#define LOAD_FLOAT       0xBC
+
+#define STORE            0x83
+#define LOAD_IMM         0x84
+#define PUSH_IMM         0x86
+#define LOAD             0x85
+#define ALLOC            0x87
+
+// Debugging
+#define BREAKPOINT       0x7F
 
 #endif //REX_OPCODES_H

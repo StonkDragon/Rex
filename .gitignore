@@ -2,4 +2,3 @@
 bin/*
 *.dSYM
 *.dump
-*.rx

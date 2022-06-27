@@ -14,7 +14,7 @@
 #include "../opcodes.h"
 #include "../rexcall.h"
 
-int execSyscall(uint32_t size, FILE** openFiles, int* filePointer) {
+int execSyscall(uint64_t size, FILE** openFiles, int* filePointer) {
     switch (re_get(0xF))
     {
     case SC_EXIT:
@@ -22,72 +22,12 @@ int execSyscall(uint32_t size, FILE** openFiles, int* filePointer) {
         printf("\n");
         printf("Debug: ");
         me_heapDump("memory.dump");
-        printf("Exited with exit code %d (0x%08x)\n", re_get(0), re_get(0));
+        printf("Exited with exit code %llu (0x%08llx)\n", re_get(0), re_get(0));
         #endif
         {
             int ret = re_get(0);
             return ret;
         }
-
-    case SC_READ_CON:
-    {
-        addr = re_get(0);
-        int len = re_get(1);
-        if (addr > HEAP_MAX || addr < 0)
-        {
-            heap_error("Attempted to write outside of memory space (Address: %02x)\n", addr);
-            me_heapDump("memory.dump");
-        }
-        if (addr <= size)
-        {
-            heap_error("Attempted to write to reserved memory space (Address: %02x)\n", addr);
-            me_heapDump("memory.dump");
-        }
-
-        for (int i = 0; i < len; i++)
-        {
-            me_writeByte(addr + i, getchar());
-        }
-    }
-    break;
-
-    case SC_WRITE_CON:
-    {
-        string str = me_readString(re_get(0));
-        for (size_t i = 0; i < strlen(str); i++)
-        {
-            if (str[i] == 0)
-                break;
-            if (str[i] == '\\')
-            {
-                i++;
-                switch (str[i])
-                {
-                case 'n':
-                    printf("\n");
-                    break;
-                case 't':
-                    printf("\t");
-                    break;
-                case 'r':
-                    printf("\r");
-                    break;
-                case '\\':
-                    printf("\\");
-                    break;
-                default:
-                    printf("%c", str[i]);
-                    break;
-                }
-            }
-            else
-            {
-                printf("%c", str[i]);
-            }
-        }
-        free(str);
-    }
-    break;
 
     case SC_SLEEP:
         sleep(re_get(0));
@@ -114,68 +54,72 @@ int execSyscall(uint32_t size, FILE** openFiles, int* filePointer) {
 
     case SC_READ:
     {
-        string str = NULL;
         int fd = re_get(0);
-        int len = re_get(1);
-        addr = re_get(2);
-        string buf = (string)malloc(len);
-
-        read(fileno(openFiles[fd]), buf, len);
-        for (int i = 0; i < len; i++)
+        addr = re_get(1);
+        if (addr > HEAP_MAX || addr < 0)
         {
-            me_writeByte(addr + i, buf[i]);
+            heap_error("Attempted to write outside of memory space (Address: %02llx)\n", addr);
+            me_heapDump("memory.dump");
         }
-        free(buf);
-        free(str);
+        if (addr <= size)
+        {
+            heap_error("Attempted to write to reserved memory space (Address: %02llx)\n", addr);
+            me_heapDump("memory.dump");
+        }
+
+        size_t len;
+        string buffer = NULL;
+
+        getline(&buffer, &len, openFiles[fd]);
+        if (len > 0) {
+            buffer[len - 1] = '\0';
+        }
+
+        me_writeString(addr, buffer);
     }
     break;
 
     case SC_WRITE:
     {
         int fd = re_get(0);
-        int len = re_get(1);
-        addr = re_get(2);
+        addr = re_get(1);
 
-        string buf = (string)malloc(len);
-        for (int i = 0; i < len; i++)
-        {
-            buf[i] = me_readByte(addr + i);
-        }
+        char c;
+        int i = 0;
 
-        for (size_t i = 0; i < strlen(buf); i++)
+        while ((c = me_readByte(addr + i)) != 0)
         {
-            if (buf[i] == '\0')
-                break;
-            if (buf[i] == '\\')
+            if (c == '\\')
             {
                 i++;
-                if (buf[i] == 'n')
+                c = me_readByte(addr + i);
+                if (c == 'n')
                 {
                     fprintf(openFiles[fd], "\n");
                 }
-                else if (buf[i] == 't')
+                else if (c == 't')
                 {
                     fprintf(openFiles[fd], "\t");
                 }
-                else if (buf[i] == 'r')
+                else if (c == 'r')
                 {
                     fprintf(openFiles[fd], "\r");
                 }
-                else if (buf[i] == '\\')
+                else if (c == '\\')
                 {
                     fprintf(openFiles[fd], "\\");
                 }
                 else
                 {
-                    fprintf(openFiles[fd], "%c", buf[i]);
+                    fprintf(openFiles[fd], "%c", c);
                 }
             }
             else
             {
-                fprintf(openFiles[fd], "%c", buf[i]);
+                fprintf(openFiles[fd], "%c", c);
             }
+            i++;
         }
-        free(buf);
         break;
     }
     break;

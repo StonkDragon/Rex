@@ -49,6 +49,7 @@ int main(int argc, string argv[]) {
             strcat(token_buffer, " ");
         }
         i++;
+        token = NULL;
         token = strtok(NULL, " \n");
     }
     strcpy(buffer, token_buffer);
@@ -57,16 +58,16 @@ int main(int argc, string argv[]) {
 
     bin_parseLabels(token_buffer, size);
 
-    asm_writeData(buffer, size);
+    uint64_t asm_size = asm_writeData(buffer, size);
 
-    uint8_t* code = (uint8_t*) malloc(asm_ptr + HEADER_SIZE);
+    uint8_t* code = (uint8_t*) malloc(asm_size + HEADER_SIZE);
     
     code[0] = FILE_IDENTIFIER & 0xFF;
     code[1] = (FILE_IDENTIFIER >> 8) & 0xFF;
     code[2] = (FILE_IDENTIFIER >> 16) & 0xFF;
     code[3] = (FILE_IDENTIFIER >> 24) & 0xFF;
 
-    uint32_t crc = rex_crc32(asm_data, asm_ptr);
+    uint64_t crc = rex_crc32(asm_data, asm_size);
     code[4] = crc & 0xFF;
     code[5] = (crc >> 8) & 0xFF;
     code[6] = (crc >> 16) & 0xFF;
@@ -74,18 +75,17 @@ int main(int argc, string argv[]) {
     
     string entryPointLabel = bin_getEntryPointLabel();
 
-    uint32_t entryPoint = bin_getAddressOfLabel(entryPointLabel);
+    uint64_t entryPoint = bin_getAddressOfLabel(entryPointLabel);
     code[8] = entryPoint & 0xFF;
     code[9] = (entryPoint >> 8) & 0xFF;
     code[10] = (entryPoint >> 16) & 0xFF;
     code[11] = (entryPoint >> 24) & 0xFF;
-
-    code[12] = REX_COMPILER_VER & 0xFF;
-    code[13] = (REX_COMPILER_VER >> 8) & 0xFF;
-    code[14] = (REX_COMPILER_VER >> 16) & 0xFF;
-    code[15] = (REX_COMPILER_VER >> 24) & 0xFF;
+    code[12] = (entryPoint >> 32) & 0xFF;
+    code[13] = (entryPoint >> 40) & 0xFF;
+    code[14] = (entryPoint >> 48) & 0xFF;
+    code[15] = (entryPoint >> 56) & 0xFF;
     
-    for (size_t i = 0; i < (asm_ptr + HEADER_SIZE); i++) {
+    for (size_t i = 0; i < (asm_size + HEADER_SIZE); i++) {
         code[i + HEADER_SIZE] = asm_data[i];
     }
 
@@ -103,15 +103,17 @@ int main(int argc, string argv[]) {
     strcpy(debug, outFile);
     strcat(debug, ".dsym");
     FILE* dsym = fopen(debug, "w");
+    if (dsym == NULL) {
+        native_error("Could not open file %s\n", debug);
+    }
     for (size_t i = 0; i < labelCount; i++) {
-        fprintf(dsym, "%08x:%s\n", labels[i].address, labels[i].label);
+        fprintf(dsym, "%016llx:%s\n", labels[i].address, labels[i].label);
     }
     fclose(dsym);
     free(debug);
     #endif
 
     fclose(out);
-    free(token);
     free(buffer);
     free(outFile);
 
