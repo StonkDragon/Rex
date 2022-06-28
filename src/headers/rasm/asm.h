@@ -269,9 +269,9 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
                 operand = strtok(NULL, " ");
             }
             
-            size_t strLen = strlen(str);
+            uint64_t strLen = strlen(str);
 
-            for (size_t i = 0; i < strLen; i++) {
+            for (uint64_t i = 0; i < strLen; i++) {
                 asm_data[asm_ptr++] = str[i];
             }
 
@@ -351,7 +351,25 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
             asm_addInstruction(FINC, 0, 0, 0);
         } else if (strcmp(operand, "fdec") == 0) {
             asm_addInstruction(FDEC, 0, 0, 0);
-        }
+        } else if (strcmp(operand, "f2i") == 0) {
+            string reg1 = strtok(NULL, " ");
+            string reg2 = strtok(NULL, " ");
+            bin_checkNull(reg1, operand);
+            bin_checkNull(reg2, operand);
+            bin_checkIsRegister(reg1, operand);
+            bin_checkIsRegister(reg2, operand);
+
+            asm_addInstruction(F2I, regIdentifier(reg1), regIdentifier(reg2), 0);
+        } else if (strcmp(operand, "i2f") == 0) {
+            string reg1 = strtok(NULL, " ");
+            string reg2 = strtok(NULL, " ");
+            bin_checkNull(reg1, operand);
+            bin_checkNull(reg2, operand);
+            bin_checkIsRegister(reg1, operand);
+            bin_checkIsRegister(reg2, operand);
+
+            asm_addInstruction(F2I, regIdentifier(reg1), regIdentifier(reg2), 0);
+        } 
         operand = strtok(NULL, " ");
     }
 

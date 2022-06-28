@@ -5,7 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <ctype.h>
+
+#include "cutil.h"
 
 // crc32 hash function from http://home.thep.lu.se/~bjorn/crc/
 // modified by StonkDragon

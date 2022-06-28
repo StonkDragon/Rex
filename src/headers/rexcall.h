@@ -8,5 +8,6 @@
 #define SC_OPEN            0x05
 #define SC_CLOSE           0x06
 #define SC_EXEC            0x07
+#define SC_STORE           0x08
 
 #endif // RASM_CALLS_H

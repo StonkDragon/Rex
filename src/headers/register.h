@@ -30,8 +30,7 @@ uint64_t r14 = 0;
 uint64_t r15 = 0;
 uint64_t ip = 0;
 uint64_t sp = 0;
-uint64_t rFlags = 0;
-uint64_t addr = 0;
+uint8_t rFlags = 0;
 
 void re_set(uint8_t reg, uint64_t val) {
     switch (reg) {

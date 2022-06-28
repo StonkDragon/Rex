@@ -6,7 +6,7 @@
 #include "../error.h"
 
 FILE**   openFiles;
-int      filePointer = 3;
+int      filePouinter = 3;
 uint64_t bpCounter = 0;
 
 int parseBinaryTree(uint64_t size)
@@ -240,7 +240,7 @@ int parseBinaryTree(uint64_t size)
                 break;
 
             case SYSTEM:
-                ret = execSyscall(size, openFiles, &filePointer);
+                ret = execSyscall(size, openFiles, &filePouinter);
                 break;
 
             case RETURN:
@@ -308,7 +308,7 @@ int parseBinaryTree(uint64_t size)
                 break;
 
             case F2I:
-                re_set(reg1, (int64_t) fe_get(reg2));
+                re_set(reg1, (uint64_t) fe_get(reg2));
                 break;
 
             case I2F:

@@ -4,20 +4,17 @@ extern "C"
 {
 #endif
 
+#if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
+#define OS_WINDOWS
+// #error "Rasm is currently not supported on Windows!"
+#else
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <sys/file.h>
 #include <stdint.h>
-#include <errno.h>
 
+#include "headers/cutil.h"
 #include "headers/cstring.h"
 #include "headers/opcodes.h"
 #include "headers/memoryengine.h"
@@ -121,3 +118,4 @@ int main(int argc, string argv[])
 #ifdef __cplusplus
 }
 #endif
+#endif // Windows

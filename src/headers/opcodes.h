@@ -16,7 +16,7 @@
 #define DUP              0x1D
 #define SWAP             0x1E
 
-// Integer Arithmetic
+// uinteger Arithmetic
 #define IADD             0x1F
 #define ISUB             0x20
 #define IMUL             0x21
@@ -32,6 +32,7 @@
 #define IINC             0x2B
 #define IDEC             0x2C
 
+// Utility
 #define CMP              0x2D
 #define SYSTEM           0x35
 #define RETURN           0x37
@@ -45,8 +46,12 @@
 #define FCMP             0x42
 #define FINC             0x43
 #define FDEC             0x44
+
+// Value Conversion
 #define F2I              0x45
 #define I2F              0x46
+
+
 
 // 10-byte instructions
 #define GOTO             0xAE
@@ -59,15 +64,15 @@
 #define JMP              0xB6
 #define JZ               0xB8
 #define JNZ              0xB9
+
+// Memory Manipulation
 #define LOAD_IMM_FLOAT   0xBA
 #define STORE_FLOAT      0xBB
 #define LOAD_FLOAT       0xBC
-
 #define STORE            0x83
 #define LOAD_IMM         0x84
 #define PUSH_IMM         0x86
 #define LOAD             0x85
-#define ALLOC            0x87
 
 // Debugging
 #define BREAKPOINT       0x7F

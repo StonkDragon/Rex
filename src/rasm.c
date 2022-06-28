@@ -2,15 +2,19 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
+#define OS_WINDOWS
+// #error "Rasm is currently not supported on Windows!"
+#else
+
 #define RASM
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <unistd.h>
-#include <time.h>
 
+#include "headers/cutil.h"
 #include "headers/cstring.h"
 #include "headers/register.h"
 #include "headers/opcodes.h"
@@ -73,9 +77,9 @@ int main(int argc, string argv[]) {
     code[6] = (crc >> 16) & 0xFF;
     code[7] = (crc >> 24) & 0xFF;
     
-    string entryPointLabel = bin_getEntryPointLabel();
+    string entryPouintLabel = bin_getEntryPouintLabel();
 
-    uint64_t entryPoint = bin_getAddressOfLabel(entryPointLabel);
+    uint64_t entryPoint = bin_getAddressOfLabel(entryPouintLabel);
     code[8] = entryPoint & 0xFF;
     code[9] = (entryPoint >> 8) & 0xFF;
     code[10] = (entryPoint >> 16) & 0xFF;
@@ -85,7 +89,7 @@ int main(int argc, string argv[]) {
     code[14] = (entryPoint >> 48) & 0xFF;
     code[15] = (entryPoint >> 56) & 0xFF;
     
-    for (size_t i = 0; i < (asm_size + HEADER_SIZE); i++) {
+    for (uint64_t i = 0; i < (asm_size + HEADER_SIZE); i++) {
         code[i + HEADER_SIZE] = asm_data[i];
     }
 
@@ -94,7 +98,7 @@ int main(int argc, string argv[]) {
         native_error("Could not open file %s\n", outFile);
     }
 
-    for (size_t i = 0; i < (asm_ptr + HEADER_SIZE); i++) {
+    for (uint64_t i = 0; i < (asm_ptr + HEADER_SIZE); i++) {
         fprintf(out, "%c", code[i]);
     }
     
@@ -106,7 +110,7 @@ int main(int argc, string argv[]) {
     if (dsym == NULL) {
         native_error("Could not open file %s\n", debug);
     }
-    for (size_t i = 0; i < labelCount; i++) {
+    for (uint64_t i = 0; i < labelCount; i++) {
         fprintf(dsym, "%016llx:%s\n", labels[i].address, labels[i].label);
     }
     fclose(dsym);
@@ -125,3 +129,4 @@ int main(int argc, string argv[]) {
 #ifdef __cplusplus
 }
 #endif
+#endif // Windows

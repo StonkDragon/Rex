@@ -8,7 +8,7 @@
 #define string char *
 
 // Source: https://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
-// Stores the trimmed input string into the given output buffer, which must be
+// Stores the trimmed input string uinto the given output buffer, which must be
 // large enough to store the result.  If it is too small, the output is
 // truncated.
 size_t trimwhitespace(string out, size_t len, const string str)
@@ -20,7 +20,7 @@ size_t trimwhitespace(string out, size_t len, const string str)
     size_t out_size;
 
     // Trim leading space
-    while (isspace((unsigned char)*str))
+    while (isSpace((unsigned char)*str))
         str++;
 
     if (*str == 0) // All spaces?
@@ -31,7 +31,7 @@ size_t trimwhitespace(string out, size_t len, const string str)
 
     // Trim trailing space
     end = str + strlen(str) - 1;
-    while (end > str && isspace((unsigned char)*end))
+    while (end > str && isSpace((unsigned char)*end))
         end--;
     end++;
 

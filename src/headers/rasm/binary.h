@@ -4,10 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <unistd.h>
-#include <time.h>
 
+#include "../cutil.h"
 #include "../cstring.h"
 #include "../error.h"
 #include "../opcodes.h"
@@ -26,8 +24,9 @@ uint64_t      labelCount = 0;
 uint64_t      byteAlignment = 16;
 
 #define bin_checkIsNumber(label, instruction) { \
-    for (size_t i = 0; i < strlen(label); i++) { \
-        if (!isdigit(label[i])) { \
+    uint64_t __len = strlen(label); \
+    for (uint64_t i = 0; i < __len; i++) { \
+        if (!isDigit(label[i])) { \
             syntax_error("Expected number but got \"%s\" (Instruction: %s)\n", label, instruction); \
         } \
     } \
@@ -48,8 +47,8 @@ uint64_t      byteAlignment = 16;
     } \
 }
 
-string bin_getEntryPointLabel() {
-    for (size_t i = 0; i < labelCount; i++) {
+string bin_getEntryPouintLabel() {
+    for (uint64_t i = 0; i < labelCount; i++) {
         if (strcmp(labels[i].label, "_main") == 0) {
             return labels[i].label;
         }
@@ -62,7 +61,7 @@ uint64_t bin_getAddressOfLabel(string label) {
         label++;
     }
 
-    for (size_t i = 0; i < labelCount; i++) {
+    for (uint64_t i = 0; i < labelCount; i++) {
         if (strcmp(labels[i].label, label) == 0) {
             return labels[i].address;
         }
@@ -89,14 +88,14 @@ void bin_parseLabels(string data, uint64_t size) {
     uint64_t currentAddress = 0;
     string operand = strtok(data, " \n");
 
-    for (size_t i = 0; i < size; i++) {
+    for (uint64_t i = 0; i < size; i++) {
         if (operand == NULL) {
             break;
         }
         if (strlen(operand) == 0) {
             continue;
         }
-        if (strcmp(operand, "breakpoint") == 0) {
+        if (strcmp(operand, "BREAKPOINT") == 0) {
             incAddr(BREAKPOINT);
         } else if (strcmp(operand, "nop") == 0) {
             incAddr(NOP);
@@ -264,6 +263,10 @@ void bin_parseLabels(string data, uint64_t size) {
             incAddr(FINC);
         } else if (strcmp(operand, "fdec") == 0) {
             incAddr(FDEC);
+        } else if (strcmp(operand, "f2i") == 0) {
+            incAddr(F2I);
+        } else if (strcmp(operand, "i2f") == 0) {
+            incAddr(I2F);
         }
         operand = strtok(NULL, " \n");
     }

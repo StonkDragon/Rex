@@ -1,11 +1,10 @@
 #ifndef REX_SYSTEM_H
 #define REX_SYSTEM_H
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
 
 #include "../memoryengine.h"
 #include "../register.h"
@@ -13,8 +12,9 @@
 #include "../cstring.h"
 #include "../opcodes.h"
 #include "../rexcall.h"
+#include "../cutil.h"
 
-int execSyscall(uint64_t size, FILE** openFiles, int* filePointer) {
+int execSyscall(uint64_t size, FILE** openFiles, int* filePouinter) {
     switch (re_get(0xF))
     {
     case SC_EXIT:
@@ -29,41 +29,18 @@ int execSyscall(uint64_t size, FILE** openFiles, int* filePointer) {
             return ret;
         }
 
-    case SC_SLEEP:
-        sleep(re_get(0));
-        break;
-
-    case SC_OPEN:
-    {
-        string str = me_readString(re_get(0));
-        int mode = re_get(1);
-        FILE *f = fopen(str, mode == 0 ? "r" : "w");
-        if (f == NULL)
-        {
-            system_error("IO: Could not open file \"%s\"\n", str);
-        }
-        openFiles[*filePointer++] = f;
-        free(str);
-        me_push(*filePointer - 1);
-    }
-    break;
-
-    case SC_CLOSE:
-        fclose(openFiles[re_get(0)]);
-        break;
-
     case SC_READ:
     {
         int fd = re_get(0);
-        addr = re_get(1);
+        uint64_t addr = re_get(1);
         if (addr > HEAP_MAX || addr < 0)
         {
-            heap_error("Attempted to write outside of memory space (Address: %02llx)\n", addr);
+            heap_error("Attempted to write outside of memory space (Address: 0x%02llx)\n", addr);
             me_heapDump("memory.dump");
         }
         if (addr <= size)
         {
-            heap_error("Attempted to write to reserved memory space (Address: %02llx)\n", addr);
+            heap_error("Attempted to write to reserved memory space (Address: 0x%02llx)\n", addr);
             me_heapDump("memory.dump");
         }
 
@@ -82,7 +59,7 @@ int execSyscall(uint64_t size, FILE** openFiles, int* filePointer) {
     case SC_WRITE:
     {
         int fd = re_get(0);
-        addr = re_get(1);
+        uint64_t addr = re_get(1);
 
         char c;
         int i = 0;
@@ -124,6 +101,29 @@ int execSyscall(uint64_t size, FILE** openFiles, int* filePointer) {
     }
     break;
 
+    case SC_SLEEP:
+        sleep_ms(re_get(0));
+        break;
+
+    case SC_OPEN:
+    {
+        string str = me_readString(re_get(0));
+        int mode = re_get(1);
+        FILE *f = fopen(str, mode == 0 ? "r" : "w");
+        if (f == NULL)
+        {
+            system_error("IO: Could not open file \"%s\"\n", str);
+        }
+        openFiles[*filePouinter++] = f;
+        free(str);
+        me_push(*filePouinter - 1);
+    }
+    break;
+
+    case SC_CLOSE:
+        fclose(openFiles[re_get(0)]);
+        break;
+
     case SC_EXEC:
     {
         string str = me_readString(re_get(0));
@@ -134,6 +134,16 @@ int execSyscall(uint64_t size, FILE** openFiles, int* filePointer) {
             system_error("Failed to execute program\n");
         }
         me_push(r);
+    }
+    break;
+
+    case SC_STORE:
+    {
+        uint64_t addr = re_get(0);
+        uint64_t val = re_get(1);
+        string str = (string) malloc(MAX_STRING_LENGTH);
+        sprintf(str, "%llu", val);
+        me_writeString(addr, str);
     }
     break;
     }
