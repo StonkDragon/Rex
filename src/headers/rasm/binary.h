@@ -197,7 +197,7 @@ void bin_parseLabels(string data, uint64_t size) {
                 syntax_error("Alignment must be 6 or more\n");
             }
         } else if (strcmp(operand, ".asciiz") == 0) {      
-            string str = (string) malloc(MAX_STRING_LENGTH);
+            string str = (string) mallocOrErr(MAX_STRING_LENGTH);
             str[0] = '\0';
             operand = strtok(NULL, " \n");
             if (operand == NULL || strlen(operand) == 0) {

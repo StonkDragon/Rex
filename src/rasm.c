@@ -32,20 +32,20 @@ int main(int argc, string argv[]) {
     if (file == 0) {
         native_error("Could not open file %s\n", argv[1]);
     }
-    string outFile = (string) malloc(strlen(argv[1]) - 3);
+    string outFile = (string) mallocOrErr(strlen(argv[1]) - 3);
     strncpy(outFile, argv[1], strlen(argv[1]) - 5);
     strcat(outFile, ".rx");
     fseek(file, 0, SEEK_END);
     int size = ftell(file);
     fseek(file, 0, SEEK_SET);
     
-    string file_buffer = (string) malloc(size);
+    string file_buffer = (string) mallocOrErr(size);
     fread(file_buffer, size, 1, file);
     fclose(file);
 
     string token = strtok(file_buffer, " \n");
-    string token_buffer = (string) malloc(size);
-    string buffer = (string) malloc(size);
+    string token_buffer = (string) mallocOrErr(size);
+    string buffer = (string) mallocOrErr(size);
     int i = 0;
     while (token != NULL) {
         if (strlen(token) > 0) {
@@ -58,13 +58,13 @@ int main(int argc, string argv[]) {
     }
     strcpy(buffer, token_buffer);
 
-    labels = (rasm_label_t*) malloc(sizeof(rasm_label_t) * STACK_SIZE);
+    labels = (rasm_label_t*) mallocOrErr(sizeof(rasm_label_t) * STACK_SIZE);
 
     bin_parseLabels(token_buffer, size);
 
     uint64_t asm_size = asm_writeData(buffer, size);
 
-    uint8_t* code = (uint8_t*) malloc(asm_size + HEADER_SIZE);
+    uint8_t* code = (uint8_t*) mallocOrErr(asm_size + HEADER_SIZE);
     
     code[0] = FILE_IDENTIFIER & 0xFF;
     code[1] = (FILE_IDENTIFIER >> 8) & 0xFF;
@@ -103,7 +103,7 @@ int main(int argc, string argv[]) {
     }
     
     #ifdef DEBUG
-    string debug = (string) malloc(strlen(outFile) + 5);
+    string debug = (string) mallocOrErr(strlen(outFile) + 5);
     strcpy(debug, outFile);
     strcat(debug, ".dsym");
     FILE* dsym = fopen(debug, "w");

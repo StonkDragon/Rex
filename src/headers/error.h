@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 
+void    me_heapDump(const string dumpFile);
+
 #ifndef RASM
 #include "memoryengine.h"
 #define error(...)            { fprintf(stderr, "%s:%u: ", __FILE__, __LINE__); fprintf(stderr,  __VA_ARGS__);                   fprintf(stderr, "Dumping Memory.\n"); me_heapDump("memory.dump"); exit(ERR_GENERIC); }
@@ -32,5 +34,13 @@
 #define ERR_SYSTEM            7
 #define ERR_SYNTAX            8
 #define ERR_STACK             9
+
+void* mallocOrErr(size_t size) {
+    void* ptr = malloc(size);
+    if (ptr == NULL) {
+        native_error("Not enough Memory to allocate %lu Bytes.\n", size);
+    }
+    return ptr;
+}
 
 #endif // REX_ERROR_H

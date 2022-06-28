@@ -28,7 +28,7 @@ void asm_addInstruction(uint8_t inst, uint8_t reg1, uint8_t reg2, uint64_t addre
 }
 
 uint64_t asm_writeData(string buffer, uint64_t size) {
-    asm_data = (uint8_t*) malloc(HEAP_SIZE);
+    asm_data = (uint8_t*) mallocOrErr(HEAP_SIZE);
     string operand = strtok(buffer, " ");
     for (uint64_t i = 0; i < size; i++) {
         if (operand == NULL) {
@@ -241,7 +241,7 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
 
             asm_addInstruction(JNZ, 0, 0, add);
         } else if (strcmp(operand, ".asciiz") == 0) {
-            string str = (string) malloc(MAX_STRING_LENGTH);
+            string str = (string) mallocOrErr(MAX_STRING_LENGTH);
             str[0] = '\0';
             operand = strtok(NULL, " ");
             if (operand == NULL || strlen(operand) == 0) {
@@ -297,7 +297,7 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
             bin_checkIsRegister(reg, operand);
             string imm = strtok(NULL, " ");
             bin_checkNull(imm, operand);
-            double* num = (double*) malloc(8);
+            double* num = (double*) mallocOrErr(8);
             *num = strtof(imm, NULL);
             uint64_t num_uint64_t = *(int*)num;
 

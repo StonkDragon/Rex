@@ -141,7 +141,7 @@ int execSyscall(uint64_t size, FILE** openFiles, int* filePouinter) {
     {
         uint64_t addr = re_get(0);
         uint64_t val = re_get(1);
-        string str = (string) malloc(MAX_STRING_LENGTH);
+        string str = (string) mallocOrErr(MAX_STRING_LENGTH);
         sprintf(str, "%llu", val);
         me_writeString(addr, str);
     }

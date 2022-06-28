@@ -39,7 +39,7 @@ int run(int argc, string argv[])
     uint64_t size = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    string buffer = (string) malloc(size);
+    string buffer = (string) mallocOrErr(size);
     fread(buffer, size, 1, file);
     fclose(file);
 
@@ -51,7 +51,7 @@ int run(int argc, string argv[])
         native_error("Invalid file: %s\n", argv[1]);
     }
 
-    uint8_t* crcData = (uint8_t*) malloc(size - HEADER_SIZE);
+    uint8_t* crcData = (uint8_t*) mallocOrErr(size - HEADER_SIZE);
     for (uint64_t i = 0; i < size - HEADER_SIZE; i++) {
         crcData[i] = buffer[i + HEADER_SIZE];
     }
@@ -68,7 +68,7 @@ int run(int argc, string argv[])
         native_error("CRC mismatch! Expected %u but got %u\n", crc, dataCRC);
     }
 
-    openFiles = (FILE **) malloc(sizeof(FILE *) * STACK_SIZE);
+    openFiles = (FILE **) mallocOrErr(sizeof(FILE *) * STACK_SIZE);
 
     if (openFiles == NULL) {
         native_error("Error allocating memory for open files\n");
