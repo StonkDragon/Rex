@@ -227,7 +227,7 @@ void bin_parseLabels(string data, uint64_t size) {
             
             currentAddress += strlen(str) + 1;
             
-            free(str);
+            freeOrErr(str);
         } else if (strcmp(operand, ".at") == 0) {
             operand = strtok(NULL, " \n");
             if (operand == NULL) {

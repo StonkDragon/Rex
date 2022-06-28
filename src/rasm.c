@@ -114,12 +114,12 @@ int main(int argc, string argv[]) {
         fprintf(dsym, "%016llx:%s\n", labels[i].address, labels[i].label);
     }
     fclose(dsym);
-    free(debug);
+    freeOrErr(debug);
     #endif
 
     fclose(out);
-    free(buffer);
-    free(outFile);
+    freeOrErr(buffer);
+    freeOrErr(outFile);
 
     asm_finalize();
 

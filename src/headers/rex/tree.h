@@ -9,7 +9,7 @@ FILE**   openFiles;
 int      filePouinter = 3;
 uint64_t bpCounter = 0;
 
-int parseBinaryTree(uint64_t size)
+int executeOpcode(uint64_t size)
 {
     uint8_t opcode = me_readByte(ip);
     ip++;

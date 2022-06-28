@@ -9,7 +9,7 @@ uint8_t*  asm_data;
 uint64_t  asm_ptr = 0;
 
 void asm_finalize() {
-    free(asm_data);
+    freeOrErr(asm_data);
 }
 
 void asm_addInstruction(uint8_t inst, uint8_t reg1, uint8_t reg2, uint64_t address) {
@@ -277,7 +277,7 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
 
             asm_data[asm_ptr++] = '\0';
 
-            free(str);
+            freeOrErr(str);
         } else if (strcmp(operand, ".at") == 0) {
             operand = strtok(NULL, " ");
             if (operand == NULL) {

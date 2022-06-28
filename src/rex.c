@@ -57,7 +57,7 @@ int run(int argc, string argv[])
     }
 
     uint32_t crc = rex_crc32(crcData, size - HEADER_SIZE);
-    free(crcData);
+    freeOrErr(crcData);
 
     uint32_t dataCRC = (buffer[4] & 0xFF)
         | ((buffer[5] & 0xFF) << 8)
@@ -94,7 +94,7 @@ int run(int argc, string argv[])
         | ((uint64_t) (buffer[15] & 0xFF) << 56);
 
     while (ip < size) {
-        returnCode = parseBinaryTree(size);
+        returnCode = executeOpcode(size);
         if (returnCode != -1) {
             return returnCode;
         }

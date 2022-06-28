@@ -115,7 +115,7 @@ int execSyscall(uint64_t size, FILE** openFiles, int* filePouinter) {
             system_error("IO: Could not open file \"%s\"\n", str);
         }
         openFiles[*filePouinter++] = f;
-        free(str);
+        freeOrErr(str);
         me_push(*filePouinter - 1);
     }
     break;
@@ -128,7 +128,7 @@ int execSyscall(uint64_t size, FILE** openFiles, int* filePouinter) {
     {
         string str = me_readString(re_get(0));
         int r = system(str);
-        free(str);
+        freeOrErr(str);
         if (r < 0)
         {
             system_error("Failed to execute program\n");
