@@ -13,7 +13,7 @@
 #define ERR_STACK          9
 #define MAX_STRING_LENGTH  16384
 #define STACK_SIZE         65536
-#define HEAP_SIZE          0x1000000
+#define HEAP_SIZE          0x10000
 #define HEAP_MAX           HEAP_SIZE-1
 
 #define heap_error(...)    { fprintf(stderr, "%s:%d: ", __FILE__, __LINE__); fprintf(stderr, "Heap Error: " __VA_ARGS__);    fprintf(stderr, "Dumping Memory.\n"); me_heapDump("memory.dump"); exit(ERR_HEAP); }
