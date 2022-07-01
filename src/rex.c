@@ -211,8 +211,8 @@ int compile() {
 
 int main(int argc, string argv[])
 {
-    printf("Compile Addr: %p\n", &compile);
-    printf("Runtime Addr: %p\n", &run);
+    printf("Compile Addr: %p\n", (void*) &compile);
+    printf("Runtime Addr: %p\n", (void*) &run);
     if (argc < 3) {
         error("Usage: %s <comp|run> <file>\n", argv[0]);
     }
