@@ -12,7 +12,6 @@ compile-debug:
 hello-example:
 		mkdir -p bin
 		$(CC) $(CFLAGS) -o bin/rex-debug src/rex.c -DDEBUG
-		clear
 
 		./bin/rex-debug comp tests/hello.rasm
 		./bin/rex-debug run tests/hello.rasm
