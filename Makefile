@@ -2,6 +2,7 @@ CC=clang
 CFLAGS=-Wall -Wextra -std=gnu18 -Wgnu-binary-literal -pedantic -ggdb -O2
 
 compile:
+		mkdir -p bin
 		$(CC) $(CFLAGS) -o bin/rex src/rex.c
 
 compile-debug:
