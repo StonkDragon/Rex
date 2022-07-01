@@ -3,14 +3,10 @@
 
 #include "binary.h"
 
-#define  regIdentifier(reg) atoi(reg + 1)
+#define   regIdentifier(reg) atoi(reg + 1)
 
 uint8_t*  asm_data;
 uint64_t  asm_ptr = 0;
-
-void asm_finalize() {
-    freeOrErr(asm_data);
-}
 
 void asm_addInstruction(uint8_t inst, uint8_t reg1, uint8_t reg2, uint64_t address) {
     asm_data[asm_ptr++] = inst;
@@ -27,17 +23,15 @@ void asm_addInstruction(uint8_t inst, uint8_t reg1, uint8_t reg2, uint64_t addre
     }
 }
 
-uint64_t asm_writeData(string buffer, uint64_t size) {
+uint64_t asm_writeData(string buffer[], int* count) {
     asm_data = (uint8_t*) mallocOrErr(HEAP_SIZE);
-    string operand = strtok(buffer, " ");
-    for (uint64_t i = 0; i < size; i++) {
+
+    for (int i = 0; i < *count; i++) {
+        string operand = buffer[i];
         if (operand == NULL) {
             continue;
         }
         if (strlen(operand) == 0) {
-            continue;
-        }
-        if (operand == NULL) {
             continue;
         }
         if (strcmp(operand, "breakpoint") == 0) {
@@ -45,8 +39,8 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
         } else if (strcmp(operand, "nop") == 0) {
             asm_addInstruction(NOP, 0, 0, 0);
         } else if (strcmp(operand, "mov") == 0) {
-            string reg1 = strtok(NULL, " ");
-            string reg2 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
+            string reg2 = buffer[++i];
             bin_checkNull(reg1, operand);
             bin_checkNull(reg2, operand);
             bin_checkIsRegister(reg1, operand);
@@ -54,20 +48,20 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
 
             asm_addInstruction(MOVE, regIdentifier(reg1), regIdentifier(reg2), 0);
         } else if (strcmp(operand, "psi") == 0) {
-            string imm = strtok(NULL, " ");
+            string imm = buffer[++i];
             bin_checkNull(imm, operand);
             uint64_t num = bin_labelToInt(imm, operand);
 
             asm_addInstruction(PUSH_IMM, 0, 0, num);
         } else if (strcmp(operand, "psh") == 0) {
-            string imm = strtok(NULL, " ");
+            string imm = buffer[++i];
             bin_checkNull(imm, operand);
             bin_checkIsRegister(imm, operand);
 
             asm_addInstruction(PUSH, regIdentifier(imm), 0, 0);
         } else if (strcmp(operand, "st") == 0) {
-            string address = strtok(NULL, " ");
-            string reg = strtok(NULL, " ");
+            string address = buffer[++i];
+            string reg = buffer[++i];
             bin_checkNull(address, operand);
             bin_checkIsNumber(address, operand);
             bin_checkNull(reg, operand);
@@ -76,25 +70,25 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
 
             asm_addInstruction(STORE, regIdentifier(reg), 0, num);
         } else if (strcmp(operand, "ldi") == 0) {
-            string reg = strtok(NULL, " ");
+            string reg = buffer[++i];
             bin_checkNull(reg, operand);
             bin_checkIsRegister(reg, operand);
-            string imm = strtok(NULL, " ");
+            string imm = buffer[++i];
             bin_checkNull(imm, operand);
             uint64_t num = bin_labelToInt(imm, operand);
 
             asm_addInstruction(LOAD_IMM, regIdentifier(reg), 0, num);
         } else if (strcmp(operand, "ld") == 0) {
-            string reg = strtok(NULL, " ");
+            string reg = buffer[++i];
             bin_checkNull(reg, operand);
             bin_checkIsRegister(reg, operand);
-            string address = strtok(NULL, " ");
+            string address = buffer[++i];
             bin_checkNull(address, operand);
             uint64_t num = bin_labelToInt(address, operand);
 
             asm_addInstruction(LOAD, regIdentifier(reg), 0, num);
         } else if (strcmp(operand, "pop") == 0) {
-            string reg = strtok(NULL, " ");
+            string reg = buffer[++i];
             bin_checkNull(reg, operand);
             bin_checkIsRegister(reg, operand);
 
@@ -104,31 +98,31 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
         } else if (strcmp(operand, "swap") == 0) {
             asm_addInstruction(SWAP, 0, 0, 0);
         } else if (strcmp(operand, "add") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             bin_checkIsRegister(reg1, operand);
 
             asm_addInstruction(IADD, regIdentifier(reg1), 0, 0);
         } else if (strcmp(operand, "sub") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             bin_checkIsRegister(reg1, operand);
 
             asm_addInstruction(ISUB, regIdentifier(reg1), 0, 0);
         } else if (strcmp(operand, "mul") == 0) {            
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             bin_checkIsRegister(reg1, operand);
 
             asm_addInstruction(IMUL, regIdentifier(reg1), 0, 0);
         } else if (strcmp(operand, "div") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             bin_checkIsRegister(reg1, operand);
             
             asm_addInstruction(IDIV, regIdentifier(reg1), 0, 0);
         } else if (strcmp(operand, "mod") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             bin_checkIsRegister(reg1, operand);
 
@@ -136,30 +130,30 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
         } else if (strcmp(operand, "neg") == 0) {
             asm_addInstruction(INEG, 0, 0, 0);
         } else if (strcmp(operand, "and") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             bin_checkIsRegister(reg1, operand);
 
             asm_addInstruction(IAND, regIdentifier(reg1), 0, 0);
         } else if (strcmp(operand, "or") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             bin_checkIsRegister(reg1, operand);
 
             asm_addInstruction(IOR, regIdentifier(reg1), 0, 0);
         } else if (strcmp(operand, "xor") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             bin_checkIsRegister(reg1, operand);
 
             asm_addInstruction(IXOR, regIdentifier(reg1), 0, 0);
         } else if (strcmp(operand, "shl") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
 
             asm_addInstruction(ISHL, regIdentifier(reg1), 0, 0);
         } else if (strcmp(operand, "shr") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             bin_checkIsRegister(reg1, operand);
 
@@ -171,49 +165,49 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
         } else if (strcmp(operand, "dec") == 0) {
             asm_addInstruction(IDEC, 0, 0, 0);
         } else if (strcmp(operand, "cmp") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             bin_checkIsRegister(reg1, operand);
 
             asm_addInstruction(CMP, regIdentifier(reg1), 0, 0);
         } else if (strcmp(operand, "goto") == 0) {
-            string label = strtok(NULL, " ");
+            string label = buffer[++i];
             bin_checkNull(label, operand);
             uint64_t add = bin_labelToInt(label, operand);
 
             asm_addInstruction(GOTO, 0, 0, add);
         } else if (strcmp(operand, "jeq") == 0) {
-            string label = strtok(NULL, " ");
+            string label = buffer[++i];
             bin_checkNull(label, operand);
             uint64_t add = bin_labelToInt(label, operand);
 
             asm_addInstruction(JEQ, 0, 0, add);
         } else if (strcmp(operand, "jne") == 0) {
-            string label = strtok(NULL, " ");
+            string label = buffer[++i];
             bin_checkNull(label, operand);
             uint64_t add = bin_labelToInt(label, operand);
 
             asm_addInstruction(JNE, 0, 0, add);
         } else if (strcmp(operand, "jlt") == 0) {
-            string label = strtok(NULL, " ");
+            string label = buffer[++i];
             bin_checkNull(label, operand);
             uint64_t add = bin_labelToInt(label, operand);
 
             asm_addInstruction(JLT, 0, 0, add);
         } else if (strcmp(operand, "jgt") == 0) {
-            string label = strtok(NULL, " ");
+            string label = buffer[++i];
             bin_checkNull(label, operand);
             uint64_t add = bin_labelToInt(label, operand);
 
             asm_addInstruction(JGT, 0, 0, add);
         } else if (strcmp(operand, "jle") == 0) {
-            string label = strtok(NULL, " ");
+            string label = buffer[++i];
             bin_checkNull(label, operand);
             uint64_t add = bin_labelToInt(label, operand);
 
             asm_addInstruction(JLE, 0, 0, add);
         } else if (strcmp(operand, "jge") == 0) {
-            string label = strtok(NULL, " ");
+            string label = buffer[++i];
             bin_checkNull(label, operand);
             uint64_t add = bin_labelToInt(label, operand);
 
@@ -221,7 +215,7 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
         } else if (strcmp(operand, "syscall") == 0) {
             asm_addInstruction(SYSTEM, 0, 0, 0);
         } else if (strcmp(operand, "jsr") == 0) {
-            string label = strtok(NULL, " ");
+            string label = buffer[++i];
             bin_checkNull(label, operand);
             uint64_t add = bin_labelToInt(label, operand);
 
@@ -229,13 +223,13 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
         } else if (strcmp(operand, "rts") == 0) {    
             asm_addInstruction(RETURN, 0, 0, 0);
         } else if (strcmp(operand, "jz") == 0) {
-            string label = strtok(NULL, " ");
+            string label = buffer[++i];
             bin_checkNull(label, operand);
             uint64_t add = bin_labelToInt(label, operand);
 
             asm_addInstruction(JZ, 0, 0, add);
         } else if (strcmp(operand, "jnz") == 0) {
-            string label = strtok(NULL, " ");
+            string label = buffer[++i];
             bin_checkNull(label, operand);
             uint64_t add = bin_labelToInt(label, operand);
 
@@ -243,7 +237,7 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
         } else if (strcmp(operand, ".asciiz") == 0) {
             string str = (string) mallocOrErr(MAX_STRING_LENGTH);
             str[0] = '\0';
-            operand = strtok(NULL, " ");
+            operand = buffer[++i];
             if (operand == NULL || strlen(operand) == 0) {
                 syntax_error("Missing label after .asciiz\n");
             }
@@ -266,7 +260,7 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
                 }
                 strcat(str, operand);
                 strcat(str, " ");
-                operand = strtok(NULL, " ");
+                operand = buffer[++i];
             }
             
             uint64_t strLen = strlen(str);
@@ -279,7 +273,7 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
 
             freeOrErr(str);
         } else if (strcmp(operand, ".at") == 0) {
-            operand = strtok(NULL, " ");
+            operand = buffer[++i];
             if (operand == NULL) {
                 syntax_error("Missing label after .at\n");
             }
@@ -292,10 +286,10 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
             }
             asm_ptr = pos;
         } else if (strcmp(operand, "fldi") == 0) {
-            string reg = strtok(NULL, " ");
+            string reg = buffer[++i];
             bin_checkNull(reg, operand);
             bin_checkIsRegister(reg, operand);
-            string imm = strtok(NULL, " ");
+            string imm = buffer[++i];
             bin_checkNull(imm, operand);
             double* num = (double*) mallocOrErr(8);
             *num = strtof(imm, NULL);
@@ -303,47 +297,47 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
 
             asm_addInstruction(LOAD_IMM_FLOAT, regIdentifier(reg), 0, num_uint64_t);
         } else if (strcmp(operand, "fst") == 0) {
-            string address = strtok(NULL, " ");
+            string address = buffer[++i];
             bin_checkNull(address, operand);
-            string reg = strtok(NULL, " ");
+            string reg = buffer[++i];
             bin_checkNull(reg, operand);
             bin_checkIsRegister(reg, operand);
             uint64_t num = bin_labelToInt(address, operand);
             
             asm_addInstruction(STORE_FLOAT, regIdentifier(reg), 0, num);
         } else if (strcmp(operand, "fld") == 0) {
-            string reg = strtok(NULL, " ");
+            string reg = buffer[++i];
             bin_checkNull(reg, operand);
             bin_checkIsRegister(reg, operand);
-            string address = strtok(NULL, " ");
+            string address = buffer[++i];
             bin_checkNull(address, operand);
             uint64_t num = bin_labelToInt(address, operand);
 
             asm_addInstruction(LOAD_FLOAT, regIdentifier(reg), 0, num);
         } else if (strcmp(operand, "fadd") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
 
             asm_addInstruction(FADD, regIdentifier(reg1), 0, 0);
         } else if (strcmp(operand, "fsub") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             
             asm_addInstruction(FSUB, regIdentifier(reg1), 0, 0);
         } else if (strcmp(operand, "fmul") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             
             asm_addInstruction(FMUL, regIdentifier(reg1), 0, 0);
         } else if (strcmp(operand, "fdiv") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             
             asm_addInstruction(FDIV, regIdentifier(reg1), 0, 0);
         } else if (strcmp(operand, "fneg") == 0) {
             asm_addInstruction(FNEG, 0, 0, 0);
         } else if (strcmp(operand, "fcmp") == 0) {
-            string reg1 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
             bin_checkNull(reg1, operand);
             
             asm_addInstruction(FCMP, regIdentifier(reg1), 0, 0);
@@ -352,8 +346,8 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
         } else if (strcmp(operand, "fdec") == 0) {
             asm_addInstruction(FDEC, 0, 0, 0);
         } else if (strcmp(operand, "f2i") == 0) {
-            string reg1 = strtok(NULL, " ");
-            string reg2 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
+            string reg2 = buffer[++i];
             bin_checkNull(reg1, operand);
             bin_checkNull(reg2, operand);
             bin_checkIsRegister(reg1, operand);
@@ -361,16 +355,15 @@ uint64_t asm_writeData(string buffer, uint64_t size) {
 
             asm_addInstruction(F2I, regIdentifier(reg1), regIdentifier(reg2), 0);
         } else if (strcmp(operand, "i2f") == 0) {
-            string reg1 = strtok(NULL, " ");
-            string reg2 = strtok(NULL, " ");
+            string reg1 = buffer[++i];
+            string reg2 = buffer[++i];
             bin_checkNull(reg1, operand);
             bin_checkNull(reg2, operand);
             bin_checkIsRegister(reg1, operand);
             bin_checkIsRegister(reg2, operand);
 
             asm_addInstruction(F2I, regIdentifier(reg1), regIdentifier(reg2), 0);
-        } 
-        operand = strtok(NULL, " ");
+        }
     }
 
     while (asm_ptr % byteAlignment != 0) {

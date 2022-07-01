@@ -23,32 +23,31 @@ extern "C"
 #include "headers/error.h"
 #include "headers/crc32.h"
 #include "headers/rex/tree.h"
+#include "headers/rasm/asm.h"
 
-int run(int argc, string argv[])
+FILE* inputFile;
+string inputFileName;
+
+int run()
 {
-    if (argc < 2) {
-        error("Usage: %s <file>\n", argv[0]);
-    }
-    FILE *file = fopen(argv[1], "rb");
-
-    if (file == NULL) {
-        native_error("Error opening file \"%s\"\n", argv[1]);
+    if (inputFile == NULL) {
+        native_error("Error opening file \"%s\"\n", inputFileName);
     }
 
-    fseek(file, 0, SEEK_END);
-    uint64_t size = ftell(file);
-    fseek(file, 0, SEEK_SET);
+    fseek(inputFile, 0, SEEK_END);
+    uint64_t size = ftell(inputFile);
+    fseek(inputFile, 0, SEEK_SET);
 
     string buffer = (string) mallocOrErr(size);
-    fread(buffer, size, 1, file);
-    fclose(file);
+    fread(buffer, size, 1, inputFile);
+    fclose(inputFile);
 
     uint32_t identifier = (buffer[0] & 0xFF)
         | ((buffer[1] & 0xFF) << 8)
         | ((buffer[2] & 0xFF) << 16)
         | ((buffer[3] & 0xFF) << 24);
     if (identifier != FILE_IDENTIFIER) {
-        native_error("Invalid file: %s\n", argv[1]);
+        native_error("Invalid file: %s\n", inputFileName);
     }
 
     uint8_t* crcData = (uint8_t*) mallocOrErr(size - HEADER_SIZE);
@@ -106,13 +105,133 @@ int run(int argc, string argv[])
     return -1;
 }
 
+int compile() {
+    if (inputFile == 0) {
+        native_error("Could not open file %s\n", inputFileName);
+    }
+    string outFile = (string) mallocOrErr(strlen(inputFileName) - 3);
+    strncpy(outFile, inputFileName, strlen(inputFileName) - 5);
+    strcat(outFile, ".rx");
+    fseek(inputFile, 0, SEEK_END);
+    int size = ftell(inputFile);
+    fseek(inputFile, 0, SEEK_SET);
+    
+    string file_buffer = (string) mallocOrErr(size);
+    fread(file_buffer, size, 1, inputFile);
+    fclose(inputFile);
+
+    string tokens[HEAP_SIZE];
+
+    string token = strtok(file_buffer, " \n");
+    // string token_buffer = (string) mallocOrErr(size);
+    string buffer = (string) mallocOrErr(size);
+    // string included = (string) mallocOrErr(size);
+
+    int token_count = 0;
+    while (token != NULL) {
+        if (strlen(token) > 0) {
+            tokens[token_count++] = token;
+            // strcat(token_buffer, token);
+            // strcat(token_buffer, " ");
+        }
+        token = strtok(NULL, " \n");
+    }
+    // strcpy(included, token_buffer);
+
+    labels = (rasm_label_t*) mallocOrErr(sizeof(rasm_label_t) * STACK_SIZE);
+
+    // free(token_buffer);
+    bin_parseIncludes(tokens, &token_count);
+
+    // strcpy(buffer, token_buffer);
+    bin_parseLabels(tokens, &token_count);
+
+    uint64_t asm_size = asm_writeData(tokens, &token_count);
+
+    uint8_t* code = (uint8_t*) mallocOrErr(asm_size + HEADER_SIZE);
+    
+    code[0] = FILE_IDENTIFIER & 0xFF;
+    code[1] = (FILE_IDENTIFIER >> 8) & 0xFF;
+    code[2] = (FILE_IDENTIFIER >> 16) & 0xFF;
+    code[3] = (FILE_IDENTIFIER >> 24) & 0xFF;
+
+    uint64_t crc = rex_crc32(asm_data, asm_size);
+    code[4] = crc & 0xFF;
+    code[5] = (crc >> 8) & 0xFF;
+    code[6] = (crc >> 16) & 0xFF;
+    code[7] = (crc >> 24) & 0xFF;
+    
+    string entryPointLabel = bin_getEntryPointLabel();
+
+    uint64_t entryPoint = bin_getAddressOfLabel(entryPointLabel);
+    code[8] = entryPoint & 0xFF;
+    code[9] = (entryPoint >> 8) & 0xFF;
+    code[10] = (entryPoint >> 16) & 0xFF;
+    code[11] = (entryPoint >> 24) & 0xFF;
+    code[12] = (entryPoint >> 32) & 0xFF;
+    code[13] = (entryPoint >> 40) & 0xFF;
+    code[14] = (entryPoint >> 48) & 0xFF;
+    code[15] = (entryPoint >> 56) & 0xFF;
+    
+    for (uint64_t i = 0; i < (asm_size + HEADER_SIZE); i++) {
+        code[i + HEADER_SIZE] = asm_data[i];
+    }
+
+    FILE* out = fopen(outFile, "wb");
+    if (out == NULL) {
+        native_error("Could not open file %s\n", outFile);
+    }
+
+    for (uint64_t i = 0; i < (asm_ptr + HEADER_SIZE); i++) {
+        fprintf(out, "%c", code[i]);
+    }
+    
+    #ifdef DEBUG
+    string debug = (string) mallocOrErr(strlen(outFile) + 5);
+    strcpy(debug, outFile);
+    strcat(debug, ".dsym");
+    FILE* dsym = fopen(debug, "w");
+    if (dsym == NULL) {
+        native_error("Could not open file %s\n", debug);
+    }
+    for (uint64_t i = 0; i < labelCount; i++) {
+        fprintf(dsym, "%016llx:%s\n", labels[i].address, labels[i].label);
+    }
+    fclose(dsym);
+    freeOrErr(debug);
+    #endif
+
+    fclose(out);
+    freeOrErr(buffer);
+    freeOrErr(outFile);
+    freeOrErr(asm_data);
+
+    return 0;
+}
+
 int main(int argc, string argv[])
 {
-    int r = run(argc, argv);
-    if (r != 0) {
-        me_heapDump("error.dump");
+    printf("Compile Addr: %p\n", &compile);
+    printf("Runtime Addr: %p\n", &run);
+    if (argc < 3) {
+        error("Usage: %s <comp|run> <file>\n", argv[0]);
     }
-    return r;
+
+    inputFileName = argv[2];
+    inputFile = fopen(inputFileName, "r");
+
+    if (strcmp(argv[1], "comp") == 0) {
+        return compile();
+    } else if (strcmp(argv[1], "run") == 0) {
+        int r = run();
+        if (r != 0) {
+            me_heapDump("error.dump");
+        }
+        return r;
+    } else {
+        error("Usage: %s <comp|run> <file>\n", argv[0]);
+    }
+    return 0;
 }
 
 #ifdef __cplusplus

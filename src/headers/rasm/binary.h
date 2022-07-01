@@ -47,7 +47,7 @@ uint64_t      byteAlignment = 16;
     } \
 }
 
-string bin_getEntryPouintLabel() {
+string bin_getEntryPointLabel() {
     for (uint64_t i = 0; i < labelCount; i++) {
         if (strcmp(labels[i].label, "_main") == 0) {
             return labels[i].label;
@@ -84,11 +84,66 @@ int bin_opLength(int opcode) {
     return 2 + (opcode & 0x80 ? 8 : 0);
 }
 
-void bin_parseLabels(string data, uint64_t size) {
-    uint64_t currentAddress = 0;
-    string operand = strtok(data, " \n");
+int bin_readFileToArray(string filename, string* buffer, int maxTokens) {
+    FILE* f = fopen(filename, "r");
+    if (f == NULL) {
+        syntax_error("Could not open file \"%s\"\n", filename);
+    }
 
-    for (uint64_t i = 0; i < size; i++) {
+    fseek(f, 0, SEEK_END);
+    int size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    buffer = mallocOrErr(sizeof(string) * maxTokens);
+
+    string contents = mallocOrErr(size + 1);
+
+    fread(contents, 1, size, f);
+
+    string token = strtok(contents, " \n");
+    int i = -1;
+    while (i < size) {
+        if (token == NULL) {
+            break;
+        }
+        buffer[++i] = token;
+        token = strtok(NULL, " \n");
+    }
+    fclose(f);
+    return i;
+}
+
+int bin_parseIncludes(string data[], int* count) {
+    for (int i = 0; i < *count; i++) {
+        string token = data[i];
+        if (token == NULL) {
+            break;
+        }
+        if (strlen(token) == 0) {
+            continue;
+        }
+        if (strcmp(token, ".include") == 0) {
+            string include = data[++i];
+            if (include == NULL) {
+                syntax_error("Expected include file name\n");
+            }
+            string* includeData = (string*) mallocOrErr(sizeof(string) * HEAP_SIZE);
+            int t_count = bin_readFileToArray(include, includeData, HEAP_SIZE);
+            if (t_count == -1) {
+                syntax_error("Could not read include file \"%s\"\n", include);
+            }
+            for (int j = 0; j < t_count; j++) {
+                data[*count + j] = includeData[j];
+            }
+            *count += t_count;
+        }
+    }
+    return 0;
+}
+
+void bin_parseLabels(string data[], int* count) {
+    uint64_t currentAddress = 0;
+    for (int i = 0; i < *count; i++) {
+        string operand = data[i];
         if (operand == NULL) {
             break;
         }
@@ -172,7 +227,7 @@ void bin_parseLabels(string data, uint64_t size) {
         } else if (strcmp(operand, "jnz") == 0) {
             incAddr(JNZ);
         } else if (strcmp(operand, ".here") == 0) {
-            operand = strtok(NULL, " \n");
+            operand = data[++i];
             if (operand == NULL) {
                 syntax_error("Missing label after .here\n");
             }
@@ -182,7 +237,7 @@ void bin_parseLabels(string data, uint64_t size) {
             rasm_label_t l = {operand, currentAddress};
             labels[labelCount++] = l;
         } else if (strcmp(operand, ".align") == 0) {
-            operand = strtok(NULL, " \n");
+            operand = data[++i];
             if (operand == NULL) {
                 syntax_error("Missing label after .align\n");
             }
@@ -199,7 +254,7 @@ void bin_parseLabels(string data, uint64_t size) {
         } else if (strcmp(operand, ".asciiz") == 0) {      
             string str = (string) mallocOrErr(MAX_STRING_LENGTH);
             str[0] = '\0';
-            operand = strtok(NULL, " \n");
+            operand = data[++i];
             if (operand == NULL || strlen(operand) == 0) {
                 syntax_error("Missing label after .asciiz\n");
             }
@@ -222,14 +277,14 @@ void bin_parseLabels(string data, uint64_t size) {
                 }
                 strcat(str, operand);
                 strcat(str, " ");
-                operand = strtok(NULL, " \n");
+                operand = data[++i];
             }
             
             currentAddress += strlen(str) + 1;
             
             freeOrErr(str);
         } else if (strcmp(operand, ".at") == 0) {
-            operand = strtok(NULL, " \n");
+            operand = data[++i];
             if (operand == NULL) {
                 syntax_error("Missing label after .at\n");
             }
@@ -268,7 +323,6 @@ void bin_parseLabels(string data, uint64_t size) {
         } else if (strcmp(operand, "i2f") == 0) {
             incAddr(I2F);
         }
-        operand = strtok(NULL, " \n");
     }
 }
 
