@@ -6,9 +6,11 @@ compile:
 		$(CC) $(CFLAGS) -o bin/rex src/rex.c
 
 compile-debug:
+		mkdir -p bin
 		$(CC) $(CFLAGS) -o bin/rex-debug src/rex.c -DDEBUG
 
 hello-example:
+		mkdir -p bin
 		$(CC) $(CFLAGS) -o bin/rex-debug src/rex.c -DDEBUG
 		clear
 
